@@ -33,3 +33,10 @@ export function suggererCouleur(texteParfum) {
   }
   return COULEUR_PAR_DEFAUT
 }
+
+// Pastilles proposees dans l'admin, en plus de la suggestion automatique
+export const PALETTE_PASTILLES = [
+  '#c9622b', '#e8a13a', '#d9a86c', '#8b7bc7', '#d98ba0', '#e8dba8',
+  '#c7405a', '#4f7a5c', '#8a5a3b', '#a8501f', '#6b4423', '#4a7b8c',
+  '#8a2b2b', '#a3b58c', '#f0e4c8', '#d8cbb8',
+]

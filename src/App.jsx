@@ -4,8 +4,12 @@ import { AuthProvider } from './contexts/AuthContext'
 import { CartProvider } from './contexts/CartContext'
 import Header from './components/Header'
 import PanierTiroir from './components/PanierTiroir'
+import BarreConfiance from './components/BarreConfiance'
+import Footer from './components/Footer'
+import PopupBienvenue from './components/PopupBienvenue'
 import Accueil from './pages/Accueil'
 import Boutique from './pages/Boutique'
+import DetailProduit from './pages/DetailProduit'
 import Connexion from './pages/Connexion'
 import Inscription from './pages/Inscription'
 import Compte from './pages/Compte'
@@ -21,11 +25,14 @@ export default function App() {
       <CartProvider>
         <BrowserRouter>
           <Header onOuvrirPanier={() => setPanierOuvert(true)} />
+          <BarreConfiance />
           <PanierTiroir ouvert={panierOuvert} onFermer={() => setPanierOuvert(false)} />
+          <PopupBienvenue />
           <main>
             <Routes>
               <Route path="/" element={<Accueil />} />
               <Route path="/boutique" element={<Boutique />} />
+              <Route path="/boutique/:id" element={<DetailProduit />} />
               <Route path="/connexion" element={<Connexion />} />
               <Route path="/inscription" element={<Inscription />} />
               <Route path="/compte" element={<Compte />} />
@@ -34,6 +41,7 @@ export default function App() {
               <Route path="/admin" element={<Admin />} />
             </Routes>
           </main>
+          <Footer />
         </BrowserRouter>
       </CartProvider>
     </AuthProvider>

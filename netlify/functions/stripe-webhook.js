@@ -19,13 +19,27 @@ export default async (req) => {
     const commandeId = session.metadata?.commande_id
 
     if (commandeId) {
-      // La clé "service_role" contourne la sécurité RLS, elle est nécessaire ici
-      // car ce webhook n'agit pas au nom d'un utilisateur connecté.
       const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+
       await supabase
         .from('commandes')
         .update({ statut: 'payee', stripe_session_id: session.id, stripe_payment_intent: session.payment_intent })
         .eq('id', commandeId)
+
+      // Si un code promo a ete utilise sur cette commande, on l'enregistre comme "utilise"
+      // pour empecher le meme client de le reutiliser
+      const { data: commande } = await supabase
+        .from('commandes')
+        .select('code_promo_id, user_id')
+        .eq('id', commandeId)
+        .single()
+
+      if (commande?.code_promo_id && commande?.user_id) {
+        await supabase
+          .from('codes_promo_utilises')
+          .insert({ code_promo_id: commande.code_promo_id, user_id: commande.user_id, commande_id: commandeId })
+          .select()
+      }
     }
   }
 

@@ -7,13 +7,22 @@ export default async (req) => {
 
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
-    const { commandeId, articles } = await req.json()
+    const { commandeId, articles, reductionPourcentage } = await req.json()
 
     if (!commandeId || !articles || articles.length === 0) {
       return new Response(JSON.stringify({ erreur: 'Commande invalide.' }), { status: 400 })
     }
 
     const siteUrl = process.env.SITE_URL || `https://${req.headers.get('host')}`
+
+    let discounts
+    if (reductionPourcentage && reductionPourcentage > 0) {
+      const coupon = await stripe.coupons.create({
+        percent_off: reductionPourcentage,
+        duration: 'once',
+      })
+      discounts = [{ coupon: coupon.id }]
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
@@ -26,6 +35,7 @@ export default async (req) => {
         },
         quantity: a.quantite,
       })),
+      ...(discounts ? { discounts } : {}),
       metadata: { commande_id: commandeId },
       success_url: `${siteUrl}/commande-succes`,
       cancel_url: `${siteUrl}/commande`,

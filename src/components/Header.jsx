@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useCart } from '../contexts/CartContext'
+import BarreRecherche from './BarreRecherche'
 
 export default function Header({ onOuvrirPanier }) {
   const { user, profil, deconnexion } = useAuth()
@@ -15,16 +16,18 @@ export default function Header({ onOuvrirPanier }) {
     }}>
       <div className="container" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        height: 72
+        height: 72, gap: 24,
       }}>
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
           <FlameIcon />
           <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, letterSpacing: '0.02em' }}>
             Lueur & Cire
           </span>
         </Link>
 
-        <nav style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+        <BarreRecherche />
+
+        <nav style={{ display: 'flex', alignItems: 'center', gap: 28, flexShrink: 0 }}>
           <Link to="/boutique" style={{ fontSize: 15, color: 'var(--cire-douce)' }}>Boutique</Link>
 
           {profil?.is_admin && (

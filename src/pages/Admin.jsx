@@ -2,13 +2,17 @@ import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { suggererCouleur } from '../lib/couleursParfums'
+import { suggererCouleur, PALETTE_PASTILLES } from '../lib/couleursParfums'
 
 const STATUTS = ['en_attente', 'payee', 'preparee', 'expediee', 'livree', 'annulee']
 const LIBELLES_STATUT = {
   en_attente: 'En attente', payee: 'Payée', preparee: 'Préparée',
   expediee: 'Expédiée', livree: 'Livrée', annulee: 'Annulée',
 }
+const ONGLETS = [
+  ['produits', 'Produits'], ['categories', 'Catégories'], ['packs', 'Packs'],
+  ['codes', 'Codes promo'], ['avis', 'Avis'], ['commandes', 'Commandes'],
+]
 
 export default function Admin() {
   const { user, profil, loading } = useAuth()
@@ -22,24 +26,25 @@ export default function Admin() {
     <div className="container" style={{ padding: '48px 24px 90px' }}>
       <h1 style={{ fontSize: 30, marginBottom: 30 }}>Espace admin</h1>
 
-      <div style={{ display: 'flex', gap: 10, marginBottom: 34 }}>
-        <button onClick={() => setOnglet('produits')} className={onglet === 'produits' ? 'btn btn-primary' : 'btn btn-secondary'}>
-          Produits
-        </button>
-        <button onClick={() => setOnglet('categories')} className={onglet === 'categories' ? 'btn btn-primary' : 'btn btn-secondary'}>
-          Catégories
-        </button>
-        <button onClick={() => setOnglet('commandes')} className={onglet === 'commandes' ? 'btn btn-primary' : 'btn btn-secondary'}>
-          Commandes
-        </button>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 34, flexWrap: 'wrap' }}>
+        {ONGLETS.map(([valeur, libelle]) => (
+          <button key={valeur} onClick={() => setOnglet(valeur)} className={onglet === valeur ? 'btn btn-primary' : 'btn btn-secondary'}>
+            {libelle}
+          </button>
+        ))}
       </div>
 
       {onglet === 'produits' && <GestionProduits />}
       {onglet === 'categories' && <GestionCategories />}
+      {onglet === 'packs' && <GestionPacks />}
+      {onglet === 'codes' && <GestionCodesPromo />}
+      {onglet === 'avis' && <GestionAvis />}
       {onglet === 'commandes' && <GestionCommandes />}
     </div>
   )
 }
+
+/* ---------- PRODUITS ---------- */
 
 function GestionProduits() {
   const [produits, setProduits] = useState([])
@@ -60,8 +65,11 @@ function GestionProduits() {
   async function sauvegarder(form) {
     const payload = {
       nom: form.nom, description: form.description, prix: parseFloat(form.prix),
-      stock: parseInt(form.stock, 10), image_url: form.image_url, parfum: form.parfum,
-      actif: form.actif, categorie_id: form.categorie_id || null, couleur: form.couleur || null,
+      stock: parseInt(form.stock, 10), image_url: form.image_url, image_url_secondaire: form.image_url_secondaire,
+      parfum: form.parfum, actif: form.actif, categorie_id: form.categorie_id || null,
+      couleur: form.couleur || null,
+      prix_barre: form.prix_barre ? parseFloat(form.prix_barre) : null,
+      reduction_par_deux: form.reduction_par_deux,
     }
     if (form.id) {
       await supabase.from('produits').update(payload).eq('id', form.id)
@@ -102,10 +110,7 @@ function GestionProduits() {
               backgroundImage: p.image_url ? `url(${p.image_url})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center'
             }}>
               {p.couleur && (
-                <span style={{
-                  position: 'absolute', bottom: -4, right: -4, width: 14, height: 14, borderRadius: '50%',
-                  background: p.couleur, border: '2px solid var(--bois)'
-                }} />
+                <span style={{ position: 'absolute', bottom: -4, right: -4, width: 14, height: 14, borderRadius: '50%', background: p.couleur, border: '2px solid var(--bois)' }} />
               )}
             </div>
             <div style={{ flex: 1 }}>
@@ -113,14 +118,11 @@ function GestionProduits() {
               <p style={{ fontSize: 13, color: 'var(--fumee)' }}>
                 {p.prix.toFixed(2)} € · stock : {p.stock}
                 {p.categories?.nom && <> · <span style={{ color: 'var(--flamme)' }}>{p.categories.nom}</span></>}
+                {p.reduction_par_deux && <> · <span style={{ color: 'var(--flamme)' }}>2=-10%</span></>}
               </p>
             </div>
-            <button className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: 13 }} onClick={() => setEnEdition(p)}>
-              Modifier
-            </button>
-            <button onClick={() => supprimer(p.id)} style={{ background: 'none', color: 'var(--erreur)', fontSize: 13 }}>
-              Supprimer
-            </button>
+            <button className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: 13 }} onClick={() => setEnEdition(p)}>Modifier</button>
+            <button onClick={() => supprimer(p.id)} style={{ background: 'none', color: 'var(--erreur)', fontSize: 13 }}>Supprimer</button>
           </div>
         ))}
       </div>
@@ -132,9 +134,10 @@ function FormulaireProduit({ produit, categories, onAnnuler, onSauvegarder }) {
   const [form, setForm] = useState({
     id: produit.id, nom: produit.nom || '', description: produit.description || '',
     prix: produit.prix || '', stock: produit.stock ?? 0, image_url: produit.image_url || '',
+    image_url_secondaire: produit.image_url_secondaire || '',
     parfum: produit.parfum || '', actif: produit.actif ?? true,
-    categorie_id: produit.categorie_id || '',
-    couleur: produit.couleur || '',
+    categorie_id: produit.categorie_id || '', couleur: produit.couleur || '',
+    prix_barre: produit.prix_barre || '', reduction_par_deux: produit.reduction_par_deux || false,
   })
 
   return (
@@ -156,52 +159,78 @@ function FormulaireProduit({ produit, categories, onAnnuler, onSauvegarder }) {
           </select>
         </div>
         <div className="champ">
-          <label>Parfum</label>
-          <input
-            value={form.parfum}
-            onChange={e => {
-              const nouveauParfum = e.target.value
-              setForm(f => ({
-                ...f,
-                parfum: nouveauParfum,
-                // Ne remplace la couleur que si elle n'a jamais été choisie à la main
-                couleur: f.couleurModifieeManuelle ? f.couleur : suggererCouleur(nouveauParfum),
-              }))
-            }}
-            placeholder="Ex : Vanille, Bois de santal, Fleur d'oranger..."
-          />
-        </div>
-        <div className="champ">
-          <label>Couleur assortie</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <input
-              type="color"
-              value={form.couleur || '#c9622b'}
-              onChange={e => setForm(f => ({ ...f, couleur: e.target.value, couleurModifieeManuelle: true }))}
-              style={{ width: 44, height: 40, padding: 2, background: 'var(--bois)', border: '1.5px solid var(--bois-clair)', borderRadius: 4 }}
-            />
-            <span style={{ fontSize: 13, color: 'var(--fumee)' }}>
-              Suggérée d'après le parfum, modifiable
-            </span>
-          </div>
-        </div>
-        <div className="champ">
           <label>Prix (€)</label>
           <input type="number" step="0.01" value={form.prix} onChange={e => setForm({ ...form, prix: e.target.value })} />
+        </div>
+        <div className="champ">
+          <label>Prix barré (optionnel, pour une promo)</label>
+          <input type="number" step="0.01" value={form.prix_barre} onChange={e => setForm({ ...form, prix_barre: e.target.value })} placeholder="Ex : 24.90" />
         </div>
         <div className="champ">
           <label>Stock</label>
           <input type="number" value={form.stock} onChange={e => setForm({ ...form, stock: e.target.value })} />
         </div>
       </div>
+
+      <div className="champ">
+        <label>Parfum</label>
+        <input
+          value={form.parfum}
+          onChange={e => {
+            const nouveauParfum = e.target.value
+            setForm(f => ({ ...f, parfum: nouveauParfum, couleur: f.couleurModifieeManuelle ? f.couleur : suggererCouleur(nouveauParfum) }))
+          }}
+          placeholder="Ex : Vanille, Bois de santal, Fleur d'oranger..."
+        />
+      </div>
+
+      <div className="champ">
+        <label>Couleur assortie</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {PALETTE_PASTILLES.map(c => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setForm(f => ({ ...f, couleur: c, couleurModifieeManuelle: true }))}
+              style={{
+                width: 30, height: 30, borderRadius: '50%', background: c, padding: 0,
+                border: form.couleur === c ? '3px solid var(--cire)' : '2px solid rgba(0,0,0,0.2)',
+              }}
+              aria-label={`Choisir la couleur ${c}`}
+            />
+          ))}
+          <input
+            type="color"
+            value={form.couleur || '#c9622b'}
+            onChange={e => setForm(f => ({ ...f, couleur: e.target.value, couleurModifieeManuelle: true }))}
+            style={{ width: 36, height: 30, padding: 2, background: 'var(--bois)', border: '1.5px solid var(--bois-clair)', borderRadius: 4 }}
+            title="Couleur personnalisée"
+          />
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--fumee)', marginTop: 4 }}>Suggérée automatiquement selon le parfum tapé, cliquable pour ajuster.</p>
+      </div>
+
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, marginBottom: 16 }}>
+        <input type="checkbox" checked={form.reduction_par_deux} onChange={e => setForm({ ...form, reduction_par_deux: e.target.checked })} />
+        Offrir -10% dès que le client en achète 2
+      </label>
+
       <div className="champ">
         <label>Description</label>
         <textarea rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
       </div>
-      <div className="champ">
-        <label>Photo</label>
-        <ChampPhoto valeur={form.image_url} onChange={url => setForm({ ...form, image_url: url })} />
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <div className="champ">
+          <label>Photo principale</label>
+          <ChampPhoto valeur={form.image_url} onChange={url => setForm({ ...form, image_url: url })} />
+        </div>
+        <div className="champ">
+          <label>Photo secondaire (affichée au survol)</label>
+          <ChampPhoto valeur={form.image_url_secondaire} onChange={url => setForm({ ...form, image_url_secondaire: url })} />
+        </div>
       </div>
+
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, marginBottom: 18 }}>
         <input type="checkbox" checked={form.actif} onChange={e => setForm({ ...form, actif: e.target.checked })} />
         Visible dans la boutique
@@ -221,28 +250,20 @@ function ChampPhoto({ valeur, onChange }) {
   async function handleFichier(e) {
     const fichier = e.target.files?.[0]
     if (!fichier) return
-
     setErreur('')
-
     if (fichier.size > 5 * 1024 * 1024) {
       setErreur('La photo est trop lourde (max 5 Mo).')
       return
     }
-
     setEnvoi(true)
     const extension = fichier.name.split('.').pop()
     const nomFichier = `${crypto.randomUUID()}.${extension}`
-
-    const { error: erreurUpload } = await supabase.storage
-      .from('photos-produits')
-      .upload(nomFichier, fichier)
-
+    const { error: erreurUpload } = await supabase.storage.from('photos-produits').upload(nomFichier, fichier)
     if (erreurUpload) {
       setErreur("L'envoi de la photo a échoué.")
       setEnvoi(false)
       return
     }
-
     const { data } = supabase.storage.from('photos-produits').getPublicUrl(nomFichier)
     onChange(data.publicUrl)
     setEnvoi(false)
@@ -250,19 +271,15 @@ function ChampPhoto({ valeur, onChange }) {
 
   return (
     <div>
-      {valeur && (
-        <img
-          src={valeur}
-          alt="Aperçu de la bougie"
-          style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 4, marginBottom: 10, display: 'block' }}
-        />
-      )}
+      {valeur && <img src={valeur} alt="Aperçu" style={{ width: 90, height: 90, objectFit: 'cover', borderRadius: 4, marginBottom: 10, display: 'block' }} />}
       <input type="file" accept="image/*" onChange={handleFichier} disabled={envoi} />
       {envoi && <p style={{ fontSize: 13, color: 'var(--fumee)', marginTop: 6 }}>Envoi en cours...</p>}
       {erreur && <p style={{ fontSize: 13, color: 'var(--erreur)', marginTop: 6 }}>{erreur}</p>}
     </div>
   )
 }
+
+/* ---------- CATEGORIES ---------- */
 
 function GestionCategories() {
   const [categories, setCategories] = useState([])
@@ -298,7 +315,7 @@ function GestionCategories() {
   }
 
   async function supprimer(id) {
-    if (!confirm('Supprimer cette catégorie ? Les bougies associées ne seront pas supprimées, juste sans catégorie.')) return
+    if (!confirm('Supprimer cette catégorie ?')) return
     await supabase.from('categories').delete().eq('id', id)
     charger()
   }
@@ -307,40 +324,29 @@ function GestionCategories() {
     <div style={{ maxWidth: 480 }}>
       <form onSubmit={ajouter} style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
         <input
-          value={nouveauNom}
-          onChange={e => setNouveauNom(e.target.value)}
-          placeholder="Ex : Bougies parfumées, Coffrets, Senteurs d'hiver..."
+          value={nouveauNom} onChange={e => setNouveauNom(e.target.value)}
+          placeholder="Ex : Bougies parfumées, Coffrets..."
           style={{ flex: 1, background: 'var(--bois)', border: '1.5px solid var(--bois-clair)', borderRadius: 4, padding: '12px 14px', color: 'var(--cire)', fontSize: 15 }}
         />
         <button className="btn btn-primary" type="submit">Ajouter</button>
       </form>
-
       {erreur && <div className="message-erreur" style={{ marginBottom: 16 }}>{erreur}</div>}
-
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {categories.length === 0 && <p style={{ color: 'var(--fumee)' }}>Aucune catégorie pour l'instant.</p>}
         {categories.map(c => (
           <div key={c.id} className="carte" style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
             {enEdition?.id === c.id ? (
               <>
-                <input
-                  autoFocus
-                  value={enEdition.nom}
-                  onChange={e => setEnEdition({ ...enEdition, nom: e.target.value })}
-                  style={{ flex: 1, background: 'var(--nuit)', border: '1px solid var(--bois-clair)', borderRadius: 4, padding: '8px 10px', color: 'var(--cire)' }}
-                />
+                <input autoFocus value={enEdition.nom} onChange={e => setEnEdition({ ...enEdition, nom: e.target.value })}
+                  style={{ flex: 1, background: 'var(--nuit)', border: '1px solid var(--bois-clair)', borderRadius: 4, padding: '8px 10px', color: 'var(--cire)' }} />
                 <button className="btn btn-primary" style={{ padding: '8px 14px', fontSize: 13 }} onClick={() => renommer(c.id, enEdition.nom)}>OK</button>
                 <button className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: 13 }} onClick={() => setEnEdition(null)}>Annuler</button>
               </>
             ) : (
               <>
                 <span style={{ flex: 1 }}>{c.nom}</span>
-                <button className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: 13 }} onClick={() => setEnEdition({ id: c.id, nom: c.nom })}>
-                  Renommer
-                </button>
-                <button onClick={() => supprimer(c.id)} style={{ background: 'none', color: 'var(--erreur)', fontSize: 13 }}>
-                  Supprimer
-                </button>
+                <button className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: 13 }} onClick={() => setEnEdition({ id: c.id, nom: c.nom })}>Renommer</button>
+                <button onClick={() => supprimer(c.id)} style={{ background: 'none', color: 'var(--erreur)', fontSize: 13 }}>Supprimer</button>
               </>
             )}
           </div>
@@ -350,14 +356,313 @@ function GestionCategories() {
   )
 }
 
+/* ---------- PACKS ---------- */
+
+function GestionPacks() {
+  const [packs, setPacks] = useState([])
+  const [produits, setProduits] = useState([])
+  const [enEdition, setEnEdition] = useState(null)
+
+  async function charger() {
+    const [{ data: p }, { data: prod }] = await Promise.all([
+      supabase.from('packs').select('*, packs_produits(*, produits(nom, prix))').order('created_at', { ascending: false }),
+      supabase.from('produits').select('id, nom, prix').order('nom'),
+    ])
+    setPacks(p || [])
+    setProduits(prod || [])
+  }
+
+  useEffect(() => { charger() }, [])
+
+  async function sauvegarder(form) {
+    const payload = { nom: form.nom, description: form.description, prix: parseFloat(form.prix), image_url: form.image_url, actif: form.actif }
+    let packId = form.id
+    if (packId) {
+      await supabase.from('packs').update(payload).eq('id', packId)
+      await supabase.from('packs_produits').delete().eq('pack_id', packId)
+    } else {
+      const { data } = await supabase.from('packs').insert(payload).select().single()
+      packId = data.id
+    }
+    const lignes = form.composition.filter(l => l.produit_id).map(l => ({ pack_id: packId, produit_id: l.produit_id, quantite: l.quantite }))
+    if (lignes.length > 0) await supabase.from('packs_produits').insert(lignes)
+    setEnEdition(null)
+    charger()
+  }
+
+  async function supprimer(id) {
+    if (!confirm('Supprimer ce pack ?')) return
+    await supabase.from('packs').delete().eq('id', id)
+    charger()
+  }
+
+  return (
+    <div>
+      <button className="btn btn-primary" style={{ marginBottom: 24 }} onClick={() => setEnEdition({ actif: true, composition: [{ produit_id: '', quantite: 1 }] })}>
+        + Créer un pack
+      </button>
+
+      {enEdition && (
+        <FormulairePack pack={enEdition} produits={produits} onAnnuler={() => setEnEdition(null)} onSauvegarder={sauvegarder} />
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {packs.map(p => (
+          <div key={p.id} className="carte" style={{ padding: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
+              <div style={{ flex: 1 }}>
+                <p>{p.nom} {!p.actif && <span style={{ color: 'var(--fumee)', fontSize: 12 }}>(masqué)</span>}</p>
+                <p style={{ fontSize: 13, color: 'var(--fumee)' }}>{p.prix.toFixed(2)} €</p>
+              </div>
+              <button className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: 13 }}
+                onClick={() => setEnEdition({ ...p, composition: p.packs_produits.map(l => ({ produit_id: l.produit_id, quantite: l.quantite })) })}>
+                Modifier
+              </button>
+              <button onClick={() => supprimer(p.id)} style={{ background: 'none', color: 'var(--erreur)', fontSize: 13 }}>Supprimer</button>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--fumee)' }}>
+              Contient : {p.packs_produits.map(l => `${l.quantite} × ${l.produits?.nom}`).join(', ') || 'rien pour l\'instant'}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function FormulairePack({ pack, produits, onAnnuler, onSauvegarder }) {
+  const [form, setForm] = useState({
+    id: pack.id, nom: pack.nom || '', description: pack.description || '',
+    prix: pack.prix || '', image_url: pack.image_url || '', actif: pack.actif ?? true,
+    composition: pack.composition || [{ produit_id: '', quantite: 1 }],
+  })
+
+  function majLigne(index, champ, valeur) {
+    setForm(f => ({ ...f, composition: f.composition.map((l, i) => i === index ? { ...l, [champ]: valeur } : l) }))
+  }
+
+  return (
+    <div className="carte" style={{ padding: 22, marginBottom: 24 }}>
+      <div className="champ"><label>Nom du pack</label>
+        <input value={form.nom} onChange={e => setForm({ ...form, nom: e.target.value })} placeholder="Ex : Pack Cocooning" />
+      </div>
+      <div className="champ"><label>Description</label>
+        <textarea rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+      </div>
+      <div className="champ"><label>Prix du pack (€)</label>
+        <input type="number" step="0.01" value={form.prix} onChange={e => setForm({ ...form, prix: e.target.value })} />
+      </div>
+      <div className="champ"><label>Photo</label>
+        <ChampPhoto valeur={form.image_url} onChange={url => setForm({ ...form, image_url: url })} />
+      </div>
+
+      <label style={{ fontSize: 13, color: 'var(--fumee)', fontWeight: 500, display: 'block', marginBottom: 8 }}>Bougies incluses</label>
+      {form.composition.map((ligne, i) => (
+        <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
+          <select
+            value={ligne.produit_id}
+            onChange={e => majLigne(i, 'produit_id', e.target.value)}
+            style={{ flex: 1, background: 'var(--bois)', color: 'var(--cire)', border: '1.5px solid var(--bois-clair)', borderRadius: 4, padding: '10px 12px' }}
+          >
+            <option value="">Choisir une bougie</option>
+            {produits.map(p => <option key={p.id} value={p.id}>{p.nom} ({p.prix.toFixed(2)} €)</option>)}
+          </select>
+          <input
+            type="number" min="1" value={ligne.quantite}
+            onChange={e => majLigne(i, 'quantite', parseInt(e.target.value, 10) || 1)}
+            style={{ width: 70, background: 'var(--bois)', color: 'var(--cire)', border: '1.5px solid var(--bois-clair)', borderRadius: 4, padding: '10px 12px' }}
+          />
+        </div>
+      ))}
+      <button
+        type="button" className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: 13, marginBottom: 18 }}
+        onClick={() => setForm(f => ({ ...f, composition: [...f.composition, { produit_id: '', quantite: 1 }] }))}
+      >
+        + Ajouter une bougie au pack
+      </button>
+
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, marginBottom: 18 }}>
+        <input type="checkbox" checked={form.actif} onChange={e => setForm({ ...form, actif: e.target.checked })} />
+        Visible sur le site
+      </label>
+
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button className="btn btn-primary" onClick={() => onSauvegarder(form)}>Enregistrer</button>
+        <button className="btn btn-secondary" onClick={onAnnuler}>Annuler</button>
+      </div>
+    </div>
+  )
+}
+
+/* ---------- CODES PROMO ---------- */
+
+function GestionCodesPromo() {
+  const [codes, setCodes] = useState([])
+  const [form, setForm] = useState({ code: '', pourcentage: 10, reserve_nouveaux_clients: false, usage_unique_par_client: true })
+  const [erreur, setErreur] = useState('')
+
+  async function charger() {
+    const { data } = await supabase.from('codes_promo').select('*').order('created_at', { ascending: false })
+    setCodes(data || [])
+  }
+
+  useEffect(() => { charger() }, [])
+
+  async function ajouter(e) {
+    e.preventDefault()
+    setErreur('')
+    if (!form.code.trim()) return
+    const { error } = await supabase.from('codes_promo').insert({
+      code: form.code.trim().toUpperCase(), pourcentage: parseFloat(form.pourcentage),
+      reserve_nouveaux_clients: form.reserve_nouveaux_clients, usage_unique_par_client: form.usage_unique_par_client,
+    })
+    if (error) {
+      setErreur(error.code === '23505' ? 'Ce code existe déjà.' : 'Erreur lors de la création.')
+      return
+    }
+    setForm({ code: '', pourcentage: 10, reserve_nouveaux_clients: false, usage_unique_par_client: true })
+    charger()
+  }
+
+  async function basculerActif(id, actif) {
+    await supabase.from('codes_promo').update({ actif: !actif }).eq('id', id)
+    charger()
+  }
+
+  async function supprimer(id) {
+    if (!confirm('Supprimer ce code promo ?')) return
+    await supabase.from('codes_promo').delete().eq('id', id)
+    charger()
+  }
+
+  return (
+    <div style={{ maxWidth: 560 }}>
+      <form onSubmit={ajouter} className="carte" style={{ padding: 20, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px', gap: 14 }}>
+          <div className="champ"><label>Code</label>
+            <input value={form.code} onChange={e => setForm({ ...form, code: e.target.value })} placeholder="Ex : ETE2026" />
+          </div>
+          <div className="champ"><label>% réduction</label>
+            <input type="number" value={form.pourcentage} onChange={e => setForm({ ...form, pourcentage: e.target.value })} />
+          </div>
+        </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, marginBottom: 10 }}>
+          <input type="checkbox" checked={form.reserve_nouveaux_clients} onChange={e => setForm({ ...form, reserve_nouveaux_clients: e.target.checked })} />
+          Réservé aux nouveaux clients (jamais commandé)
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, marginBottom: 16 }}>
+          <input type="checkbox" checked={form.usage_unique_par_client} onChange={e => setForm({ ...form, usage_unique_par_client: e.target.checked })} />
+          Utilisable une seule fois par client
+        </label>
+        {erreur && <div className="message-erreur" style={{ marginBottom: 14 }}>{erreur}</div>}
+        <button className="btn btn-primary" type="submit">Créer le code</button>
+      </form>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {codes.map(c => (
+          <div key={c.id} className="carte" style={{ padding: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontFamily: 'var(--font-display)', fontSize: 16 }}>{c.code} — {c.pourcentage}%</p>
+              <p style={{ fontSize: 12, color: 'var(--fumee)' }}>
+                {c.reserve_nouveaux_clients ? 'Nouveaux clients uniquement' : 'Tout le monde'} · {c.usage_unique_par_client ? 'usage unique' : 'réutilisable'}
+              </p>
+            </div>
+            <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }} onClick={() => basculerActif(c.id, c.actif)}>
+              {c.actif ? 'Actif' : 'Désactivé'}
+            </button>
+            <button onClick={() => supprimer(c.id)} style={{ background: 'none', color: 'var(--erreur)', fontSize: 13 }}>Supprimer</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ---------- AVIS ---------- */
+
+function GestionAvis() {
+  const [avis, setAvis] = useState([])
+  const [produits, setProduits] = useState([])
+  const [form, setForm] = useState({ produit_id: '', auteur: '', note: 5, commentaire: '' })
+
+  async function charger() {
+    const [{ data: a }, { data: p }] = await Promise.all([
+      supabase.from('avis').select('*, produits(nom)').order('created_at', { ascending: false }),
+      supabase.from('produits').select('id, nom').order('nom'),
+    ])
+    setAvis(a || [])
+    setProduits(p || [])
+  }
+
+  useEffect(() => { charger() }, [])
+
+  async function ajouter(e) {
+    e.preventDefault()
+    if (!form.auteur.trim() || !form.commentaire.trim()) return
+    await supabase.from('avis').insert({
+      produit_id: form.produit_id || null, auteur: form.auteur.trim(),
+      note: form.note, commentaire: form.commentaire.trim(),
+    })
+    setForm({ produit_id: '', auteur: '', note: 5, commentaire: '' })
+    charger()
+  }
+
+  async function supprimer(id) {
+    if (!confirm('Supprimer cet avis ?')) return
+    await supabase.from('avis').delete().eq('id', id)
+    charger()
+  }
+
+  return (
+    <div style={{ maxWidth: 560 }}>
+      <form onSubmit={ajouter} className="carte" style={{ padding: 20, marginBottom: 24 }}>
+        <div className="champ"><label>Bougie concernée (optionnel — vide = avis général)</label>
+          <select
+            value={form.produit_id} onChange={e => setForm({ ...form, produit_id: e.target.value })}
+            style={{ background: 'var(--bois)', color: 'var(--cire)', border: '1.5px solid var(--bois-clair)', borderRadius: 4, padding: '12px 14px' }}
+          >
+            <option value="">Avis général (page d'accueil)</option>
+            {produits.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
+          </select>
+        </div>
+        <div className="champ"><label>Auteur</label>
+          <input value={form.auteur} onChange={e => setForm({ ...form, auteur: e.target.value })} placeholder="Ex : Marie P." />
+        </div>
+        <div className="champ"><label>Note</label>
+          <select value={form.note} onChange={e => setForm({ ...form, note: parseInt(e.target.value, 10) })}
+            style={{ background: 'var(--bois)', color: 'var(--cire)', border: '1.5px solid var(--bois-clair)', borderRadius: 4, padding: '12px 14px' }}>
+            {[5, 4, 3, 2, 1].map(n => <option key={n} value={n}>{'★'.repeat(n)}</option>)}
+          </select>
+        </div>
+        <div className="champ"><label>Commentaire</label>
+          <textarea rows={3} value={form.commentaire} onChange={e => setForm({ ...form, commentaire: e.target.value })} />
+        </div>
+        <button className="btn btn-primary" type="submit">Ajouter l'avis</button>
+      </form>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {avis.map(a => (
+          <div key={a.id} className="carte" style={{ padding: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ color: 'var(--flamme)', fontSize: 13 }}>{'★'.repeat(a.note)}{'☆'.repeat(5 - a.note)} — {a.auteur}</p>
+              <p style={{ fontSize: 13, color: 'var(--cire-douce)' }}>{a.commentaire}</p>
+              <p style={{ fontSize: 12, color: 'var(--fumee)' }}>{a.produits?.nom || 'Avis général'}</p>
+            </div>
+            <button onClick={() => supprimer(a.id)} style={{ background: 'none', color: 'var(--erreur)', fontSize: 13 }}>Supprimer</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ---------- COMMANDES ---------- */
+
 function GestionCommandes() {
   const [commandes, setCommandes] = useState([])
 
   async function charger() {
-    const { data } = await supabase
-      .from('commandes')
-      .select('*, commande_articles(*)')
-      .order('created_at', { ascending: false })
+    const { data } = await supabase.from('commandes').select('*, commande_articles(*)').order('created_at', { ascending: false })
     setCommandes(data || [])
   }
 
@@ -377,28 +682,22 @@ function GestionCommandes() {
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
             <span style={{ fontSize: 13, color: 'var(--fumee)' }}>
               {new Date(c.created_at).toLocaleDateString('fr-FR')} · {c.mode_livraison === 'drive_fampoux' ? 'Retrait Fampoux' : 'Livraison'}
+              {c.code_promo && <> · code {c.code_promo}</>}
             </span>
             <select
-              value={c.statut}
-              onChange={e => changerStatut(c.id, e.target.value)}
+              value={c.statut} onChange={e => changerStatut(c.id, e.target.value)}
               style={{ background: 'var(--bois)', color: 'var(--cire)', border: '1px solid var(--bois-clair)', borderRadius: 4, padding: '4px 8px' }}
             >
               {STATUTS.map(s => <option key={s} value={s}>{LIBELLES_STATUT[s]}</option>)}
             </select>
           </div>
           {c.adresse_livraison && (
-            <p style={{ fontSize: 13, color: 'var(--fumee)', marginBottom: 8 }}>
-              {c.adresse_livraison}, {c.code_postal_livraison} {c.ville_livraison}
-            </p>
+            <p style={{ fontSize: 13, color: 'var(--fumee)', marginBottom: 8 }}>{c.adresse_livraison}, {c.code_postal_livraison} {c.ville_livraison}</p>
           )}
           <div style={{ fontSize: 14, color: 'var(--cire-douce)', marginBottom: 10 }}>
-            {c.commande_articles?.map(a => (
-              <div key={a.id}>{a.quantite} × {a.nom_produit}</div>
-            ))}
+            {c.commande_articles?.map(a => <div key={a.id}>{a.quantite} × {a.nom_produit}</div>)}
           </div>
-          <div style={{ fontWeight: 600, borderTop: '1px solid var(--bois-clair)', paddingTop: 10 }}>
-            Total : {c.total.toFixed(2)} €
-          </div>
+          <div style={{ fontWeight: 600, borderTop: '1px solid var(--bois-clair)', paddingTop: 10 }}>Total : {c.total.toFixed(2)} €</div>
         </div>
       ))}
     </div>

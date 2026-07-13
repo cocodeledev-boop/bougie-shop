@@ -1,11 +1,33 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../contexts/CartContext'
+import { useAuth } from '../contexts/AuthContext'
+import { validerCodePromo } from '../lib/codePromo'
 
 export default function PanierTiroir({ ouvert, onFermer }) {
-  const { articles, modifierQuantite, retirer, total } = useCart()
+  const { articles, modifierQuantite, retirer, sousTotal, total, codePromo, definirCodePromo, retirerCodePromo, reductionCode } = useCart()
+  const { user } = useAuth()
   const navigate = useNavigate()
+  const [saisieCode, setSaisieCode] = useState('')
+  const [messageCode, setMessageCode] = useState('')
+  const [verification, setVerification] = useState(false)
 
   if (!ouvert) return null
+
+  async function appliquerCode(e) {
+    e.preventDefault()
+    setMessageCode('')
+    setVerification(true)
+    const resultat = await validerCodePromo(saisieCode, user)
+    setVerification(false)
+    if (!resultat.ok) {
+      setMessageCode(resultat.message)
+      return
+    }
+    definirCodePromo({ code: resultat.code, pourcentage: resultat.pourcentage, id: resultat.id })
+    setSaisieCode('')
+    setMessageCode('')
+  }
 
   return (
     <>
@@ -38,6 +60,9 @@ export default function PanierTiroir({ ouvert, onFermer }) {
                   <div style={{ flex: 1 }}>
                     <p style={{ fontSize: 15, marginBottom: 4 }}>{a.nom}</p>
                     <p style={{ fontSize: 13, color: 'var(--fumee)', marginBottom: 8 }}>{a.prix.toFixed(2)} €</p>
+                    {a.reduction_par_deux && a.quantite >= 2 && (
+                      <p style={{ fontSize: 12, color: 'var(--flamme)', marginBottom: 8 }}>-10% appliqué (2+ achetées)</p>
+                    )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <button onClick={() => modifierQuantite(a.id, a.quantite - 1)} style={qtyBtn}>−</button>
                       <span style={{ fontSize: 14, minWidth: 16, textAlign: 'center' }}>{a.quantite}</span>
@@ -55,6 +80,38 @@ export default function PanierTiroir({ ouvert, onFermer }) {
 
         {articles.length > 0 && (
           <div style={{ padding: 24, borderTop: '1px solid var(--bois-clair)' }}>
+            {codePromo ? (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, fontSize: 14 }}>
+                <span style={{ color: 'var(--flamme)' }}>Code "{codePromo.code}" appliqué (-{codePromo.pourcentage}%)</span>
+                <button onClick={retirerCodePromo} style={{ background: 'none', color: 'var(--fumee)', fontSize: 12 }}>Retirer</button>
+              </div>
+            ) : (
+              <form onSubmit={appliquerCode} style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                <input
+                  value={saisieCode}
+                  onChange={e => setSaisieCode(e.target.value)}
+                  placeholder="Code promo"
+                  style={{ flex: 1, background: 'var(--bois)', border: '1.5px solid var(--bois-clair)', borderRadius: 4, padding: '9px 12px', color: 'var(--cire)', fontSize: 14 }}
+                />
+                <button className="btn btn-secondary" style={{ padding: '9px 16px', fontSize: 13 }} disabled={verification} type="submit">
+                  {verification ? '...' : 'Valider'}
+                </button>
+              </form>
+            )}
+            {messageCode && <p style={{ fontSize: 13, color: 'var(--erreur)', marginBottom: 14 }}>{messageCode}</p>}
+
+            {reductionCode > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: 'var(--fumee)', marginBottom: 6 }}>
+                <span>Sous-total</span>
+                <span>{sousTotal.toFixed(2)} €</span>
+              </div>
+            )}
+            {reductionCode > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: 'var(--flamme)', marginBottom: 10 }}>
+                <span>Réduction</span>
+                <span>−{reductionCode.toFixed(2)} €</span>
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, fontSize: 17 }}>
               <span>Total</span>
               <strong>{total.toFixed(2)} €</strong>

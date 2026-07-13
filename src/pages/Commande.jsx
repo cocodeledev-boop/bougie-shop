@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase'
 
 export default function Commande() {
   const { user, loading } = useAuth()
-  const { articles, total, vider } = useCart()
+  const { articles, sousTotal, total, reductionCode, codePromo, vider } = useCart()
   const navigate = useNavigate()
 
   const [mode, setMode] = useState('nationale')
@@ -26,7 +26,6 @@ export default function Commande() {
     setEnvoi(true)
 
     try {
-      // 1. Créer la commande en base, statut "en_attente"
       const { data: commande, error: erreurCommande } = await supabase
         .from('commandes')
         .insert({
@@ -37,30 +36,35 @@ export default function Commande() {
           adresse_livraison: mode === 'nationale' ? adresse : null,
           ville_livraison: mode === 'nationale' ? ville : null,
           code_postal_livraison: mode === 'nationale' ? codePostal : null,
+          code_promo: codePromo?.code || null,
+          code_promo_id: codePromo?.id || null,
+          reduction_montant: reductionCode,
         })
         .select()
         .single()
 
       if (erreurCommande) throw erreurCommande
 
-      // 2. Créer les lignes de commande
       const lignes = articles.map(a => ({
         commande_id: commande.id,
         produit_id: a.id,
         nom_produit: a.nom,
         quantite: a.quantite,
-        prix_unitaire: a.prix,
+        prix_unitaire: (a.reduction_par_deux && a.quantite >= 2) ? a.prix * 0.9 : a.prix,
       }))
       const { error: erreurLignes } = await supabase.from('commande_articles').insert(lignes)
       if (erreurLignes) throw erreurLignes
 
-      // 3. Appeler la fonction Netlify qui crée la session Stripe
       const reponse = await fetch('/.netlify/functions/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           commandeId: commande.id,
-          articles: articles.map(a => ({ nom: a.nom, prix: a.prix, quantite: a.quantite })),
+          articles: articles.map(a => ({
+            nom: a.nom, quantite: a.quantite,
+            prix: (a.reduction_par_deux && a.quantite >= 2) ? a.prix * 0.9 : a.prix,
+          })),
+          reductionPourcentage: codePromo?.pourcentage || 0,
         }),
       })
 
@@ -122,9 +126,15 @@ export default function Commande() {
           {articles.map(a => (
             <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 6 }}>
               <span>{a.quantite} × {a.nom}</span>
-              <span>{(a.prix * a.quantite).toFixed(2)} €</span>
+              <span>{((a.reduction_par_deux && a.quantite >= 2 ? a.prix * 0.9 : a.prix) * a.quantite).toFixed(2)} €</span>
             </div>
           ))}
+          {reductionCode > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: 'var(--flamme)', marginTop: 6 }}>
+              <span>Code "{codePromo.code}"</span>
+              <span>−{reductionCode.toFixed(2)} €</span>
+            </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, borderTop: '1px solid var(--bois-clair)', marginTop: 10, paddingTop: 10 }}>
             <span>Total</span>
             <span>{total.toFixed(2)} €</span>

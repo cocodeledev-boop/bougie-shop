@@ -66,3 +66,18 @@ Quand tu es prêt à encaisser du vrai argent :
 - **Ne mets jamais** `sk_...` (Stripe) ou la `service_role key` (Supabase) directement dans le code du site — uniquement dans les variables d'environnement Netlify. C'est déjà comme ça que le projet est structuré.
 - Le panier est sauvegardé dans le navigateur du client (il ne se vide pas s'il ferme l'onglet).
 - Chaque bougie que tu ajoutes dans l'espace `/admin` apparaît automatiquement dans la boutique si "Visible dans la boutique" est coché.
+
+## Nouveautés (mise à jour du site)
+
+Cette version ajoute :
+- Recherche produits dans le header
+- Page dédiée par bougie (clic sur une carte), avec galerie photo (survol/clic pour la 2e photo) et produits associés
+- Prix barré + badge promo automatique quand tu remplis "Prix barré" sur une bougie
+- Réduction "-10% dès 2 achetées" activable par bougie
+- Codes promo (onglet admin "Codes promo") : le code **NOUVEAUBOUGIE** (-10%, réservé nouveaux clients, usage unique) est déjà créé
+- Popup de bienvenue -10% pour les nouveaux clients connectés
+- Packs de bougies à prix réduit (onglet admin "Packs")
+- Avis clients, ajoutables depuis l'admin (onglet "Avis"), affichés sur l'accueil et sur chaque fiche produit
+- Bandeau de confiance (livraison offerte dès 50€, expédition rapide, marque française) et pied de page complet
+
+Aucune nouvelle variable d'environnement à ajouter — tout fonctionne avec ce qui est déjà configuré.
