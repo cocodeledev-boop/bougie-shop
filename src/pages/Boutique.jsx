@@ -1,12 +1,21 @@
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import CarteProduit from '../components/CarteProduit'
 
 export default function Boutique() {
+  const location = useLocation()
   const [produits, setProduits] = useState([])
   const [categories, setCategories] = useState([])
   const [categorieActive, setCategorieActive] = useState('toutes')
   const [chargement, setChargement] = useState(true)
+
+  // Remet la boutique a son etat initial (haut de page, filtre "Toutes")
+  // a chaque fois qu'on clique sur "Boutique", meme si on y est deja
+  useEffect(() => {
+    setCategorieActive('toutes')
+    window.scrollTo({ top: 0, behavior: 'auto' })
+  }, [location.state?.nonce])
 
   useEffect(() => {
     Promise.all([

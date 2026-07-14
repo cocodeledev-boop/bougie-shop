@@ -11,7 +11,7 @@ const LIBELLES_STATUT = {
 }
 const ONGLETS = [
   ['produits', 'Produits'], ['categories', 'Catégories'], ['packs', 'Packs'],
-  ['codes', 'Codes promo'], ['avis', 'Avis'], ['commandes', 'Commandes'],
+  ['codes', 'Codes promo'], ['avis', 'Avis'], ['commandes', 'Commandes'], ['reglages', 'Réglages'],
 ]
 
 export default function Admin() {
@@ -40,6 +40,7 @@ export default function Admin() {
       {onglet === 'codes' && <GestionCodesPromo />}
       {onglet === 'avis' && <GestionAvis />}
       {onglet === 'commandes' && <GestionCommandes />}
+      {onglet === 'reglages' && <GestionReglages />}
     </div>
   )
 }
@@ -314,6 +315,11 @@ function GestionCategories() {
     charger()
   }
 
+  async function changerPhoto(id, url) {
+    await supabase.from('categories').update({ image_url: url }).eq('id', id)
+    charger()
+  }
+
   async function supprimer(id) {
     if (!confirm('Supprimer cette catégorie ?')) return
     await supabase.from('categories').delete().eq('id', id)
@@ -321,7 +327,7 @@ function GestionCategories() {
   }
 
   return (
-    <div style={{ maxWidth: 480 }}>
+    <div style={{ maxWidth: 560 }}>
       <form onSubmit={ajouter} style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
         <input
           value={nouveauNom} onChange={e => setNouveauNom(e.target.value)}
@@ -331,24 +337,27 @@ function GestionCategories() {
         <button className="btn btn-primary" type="submit">Ajouter</button>
       </form>
       {erreur && <div className="message-erreur" style={{ marginBottom: 16 }}>{erreur}</div>}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {categories.length === 0 && <p style={{ color: 'var(--fumee)' }}>Aucune catégorie pour l'instant.</p>}
         {categories.map(c => (
-          <div key={c.id} className="carte" style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-            {enEdition?.id === c.id ? (
-              <>
-                <input autoFocus value={enEdition.nom} onChange={e => setEnEdition({ ...enEdition, nom: e.target.value })}
-                  style={{ flex: 1, background: 'var(--nuit)', border: '1px solid var(--bois-clair)', borderRadius: 4, padding: '8px 10px', color: 'var(--cire)' }} />
-                <button className="btn btn-primary" style={{ padding: '8px 14px', fontSize: 13 }} onClick={() => renommer(c.id, enEdition.nom)}>OK</button>
-                <button className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: 13 }} onClick={() => setEnEdition(null)}>Annuler</button>
-              </>
-            ) : (
-              <>
-                <span style={{ flex: 1 }}>{c.nom}</span>
-                <button className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: 13 }} onClick={() => setEnEdition({ id: c.id, nom: c.nom })}>Renommer</button>
-                <button onClick={() => supprimer(c.id)} style={{ background: 'none', color: 'var(--erreur)', fontSize: 13 }}>Supprimer</button>
-              </>
-            )}
+          <div key={c.id} className="carte" style={{ padding: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              {enEdition?.id === c.id ? (
+                <>
+                  <input autoFocus value={enEdition.nom} onChange={e => setEnEdition({ ...enEdition, nom: e.target.value })}
+                    style={{ flex: 1, background: 'var(--nuit)', border: '1px solid var(--bois-clair)', borderRadius: 4, padding: '8px 10px', color: 'var(--cire)' }} />
+                  <button className="btn btn-primary" style={{ padding: '8px 14px', fontSize: 13 }} onClick={() => renommer(c.id, enEdition.nom)}>OK</button>
+                  <button className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: 13 }} onClick={() => setEnEdition(null)}>Annuler</button>
+                </>
+              ) : (
+                <>
+                  <span style={{ flex: 1 }}>{c.nom}</span>
+                  <button className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: 13 }} onClick={() => setEnEdition({ id: c.id, nom: c.nom })}>Renommer</button>
+                  <button onClick={() => supprimer(c.id)} style={{ background: 'none', color: 'var(--erreur)', fontSize: 13 }}>Supprimer</button>
+                </>
+              )}
+            </div>
+            <ChampPhoto valeur={c.image_url} onChange={url => changerPhoto(c.id, url)} />
           </div>
         ))}
       </div>
@@ -652,6 +661,75 @@ function GestionAvis() {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+/* ---------- REGLAGES DU SITE ---------- */
+
+function GestionReglages() {
+  const [valeurs, setValeurs] = useState({})
+  const [chargement, setChargement] = useState(true)
+  const [enregistre, setEnregistre] = useState(false)
+
+  async function charger() {
+    const { data } = await supabase.from('parametres_site').select('*')
+    const objet = {}
+    for (const ligne of data || []) objet[ligne.cle] = ligne.valeur || ''
+    setValeurs(objet)
+    setChargement(false)
+  }
+
+  useEffect(() => { charger() }, [])
+
+  function definir(cle, valeur) {
+    setValeurs(v => ({ ...v, [cle]: valeur }))
+  }
+
+  async function enregistrer() {
+    const lignes = Object.entries(valeurs).map(([cle, valeur]) => ({ cle, valeur }))
+    await supabase.from('parametres_site').upsert(lignes, { onConflict: 'cle' })
+    setEnregistre(true)
+    setTimeout(() => setEnregistre(false), 2500)
+  }
+
+  if (chargement) return <p style={{ color: 'var(--fumee)' }}>Chargement...</p>
+
+  return (
+    <div style={{ maxWidth: 560 }}>
+      <div className="champ">
+        <label>Nom de la boutique</label>
+        <input value={valeurs.nom_boutique || ''} onChange={e => definir('nom_boutique', e.target.value)} />
+      </div>
+
+      <div className="champ">
+        <label>Logo (remplace la petite flamme dans le menu)</label>
+        <ChampPhoto valeur={valeurs.logo_url} onChange={url => definir('logo_url', url)} />
+      </div>
+
+      <div className="champ">
+        <label>Grande photo d'accueil (à droite du titre)</label>
+        <ChampPhoto valeur={valeurs.image_hero_url} onChange={url => definir('image_hero_url', url)} />
+      </div>
+
+      <div className="champ">
+        <label>Titre de la bannière promo</label>
+        <input value={valeurs.banniere_titre || ''} onChange={e => definir('banniere_titre', e.target.value)} />
+      </div>
+      <div className="champ">
+        <label>Sous-titre de la bannière</label>
+        <input value={valeurs.banniere_sous_titre || ''} onChange={e => definir('banniere_sous_titre', e.target.value)} />
+      </div>
+      <div className="champ">
+        <label>Code affiché dans la bannière</label>
+        <input value={valeurs.banniere_code || ''} onChange={e => definir('banniere_code', e.target.value.toUpperCase())} />
+        <p style={{ fontSize: 12, color: 'var(--fumee)', marginTop: 4 }}>
+          Doit correspondre à un code créé dans l'onglet "Codes promo" pour fonctionner vraiment.
+        </p>
+      </div>
+
+      <button className="btn btn-primary" onClick={enregistrer}>Enregistrer les réglages</button>
+      {enregistre && <span style={{ marginLeft: 12, fontSize: 13, color: 'var(--emeraude-clair)' }}>Enregistré ✓</span>}
     </div>
   )
 }

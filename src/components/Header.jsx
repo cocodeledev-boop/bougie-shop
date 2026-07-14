@@ -1,12 +1,31 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useCart } from '../contexts/CartContext'
+import { useParametres } from '../hooks/useParametres'
 import BarreRecherche from './BarreRecherche'
 
 export default function Header({ onOuvrirPanier }) {
   const { user, profil, deconnexion } = useAuth()
   const { nombreArticles } = useCart()
+  const { parametres } = useParametres()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const nomBoutique = parametres.nom_boutique || 'Lueur & Cire'
+
+  // Le bouton "Boutique" ramene toujours en haut d'une boutique fraiche,
+  // meme si on est deja sur la page (comme le clic sur le logo ramene a l'accueil)
+  function allerALaBoutique(e) {
+    e.preventDefault()
+    window.scrollTo({ top: 0, behavior: 'auto' })
+    navigate('/boutique', { state: { nonce: Date.now() } })
+  }
+
+  function allerAlAccueil(e) {
+    e.preventDefault()
+    window.scrollTo({ top: 0, behavior: 'auto' })
+    navigate('/')
+  }
 
   return (
     <header style={{
@@ -18,17 +37,21 @@ export default function Header({ onOuvrirPanier }) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         height: 72, gap: 24,
       }}>
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          <FlameIcon />
+        <a href="/" onClick={allerAlAccueil} style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          {parametres.logo_url ? (
+            <img src={parametres.logo_url} alt={nomBoutique} style={{ height: 34, width: 34, objectFit: 'contain', borderRadius: 6 }} />
+          ) : (
+            <FlameIcon />
+          )}
           <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, letterSpacing: '0.02em' }}>
-            Lueur & Cire
+            {nomBoutique}
           </span>
-        </Link>
+        </a>
 
         <BarreRecherche />
 
         <nav style={{ display: 'flex', alignItems: 'center', gap: 28, flexShrink: 0 }}>
-          <Link to="/boutique" style={{ fontSize: 15, color: 'var(--cire-douce)' }}>Boutique</Link>
+          <a href="/boutique" onClick={allerALaBoutique} style={{ fontSize: 15, color: 'var(--cire-douce)' }}>Boutique</a>
 
           {profil?.is_admin && (
             <Link to="/admin" style={{ fontSize: 15, color: 'var(--flamme)' }}>Admin</Link>

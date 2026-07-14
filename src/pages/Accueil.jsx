@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useParametres } from '../hooks/useParametres'
 import CarteProduit from '../components/CarteProduit'
 import CartePack from '../components/CartePack'
 import Avis from '../components/Avis'
 import WaxDivider from '../components/WaxDivider'
 
 export default function Accueil() {
+  const { parametres } = useParametres()
   const [produits, setProduits] = useState([])
   const [categories, setCategories] = useState([])
   const [packs, setPacks] = useState([])
@@ -50,42 +52,48 @@ export default function Accueil() {
             </div>
           </div>
           <div style={{
-            aspectRatio: '4/5', borderRadius: 8,
+            aspectRatio: '4/5', borderRadius: 8, overflow: 'hidden',
             background: 'linear-gradient(160deg, var(--bois-clair), var(--bois) 70%)',
             border: '1px solid var(--bois-clair)',
             display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}>
-            <span style={{ color: 'var(--fumee)', fontSize: 14 }}>Photo de bougie à ajouter</span>
+            {parametres.image_hero_url ? (
+              <img src={parametres.image_hero_url} alt="Bougie Lueur & Cire" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <span style={{ color: 'var(--fumee)', fontSize: 14 }}>Photo de bougie à ajouter (depuis l'admin → Réglages)</span>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Bandeau -10% nouveau client */}
+      {/* Bandeau -10% nouveau client — couleur emeraude/or pour ressortir du reste du site */}
       <section className="container" style={{ padding: '0 24px 50px' }}>
         <Link
-          to={{ pathname: '/boutique' }}
+          to="/boutique"
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14,
-            background: 'linear-gradient(120deg, var(--braise), var(--braise-clair))',
-            borderRadius: 8, padding: '22px 30px', boxShadow: '0 10px 30px rgba(201,98,43,0.3)',
+            background: 'linear-gradient(120deg, var(--emeraude), #1f6b52)',
+            borderRadius: 8, padding: '22px 30px', boxShadow: '0 10px 30px rgba(47,143,106,0.35)',
+            border: '1px solid rgba(212,175,55,0.3)',
           }}
         >
           <div>
-            <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--cire)' }}>-10% sur votre première commande</p>
-            <p style={{ fontSize: 14, color: 'rgba(245,232,211,0.9)' }}>Avec un compte, code « NOUVEAUBOUGIE » à coller dans le panier.</p>
+            <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--cire)' }}>{parametres.banniere_titre || '-10% sur votre première commande'}</p>
+            <p style={{ fontSize: 14, color: 'rgba(245,232,211,0.9)' }}>{parametres.banniere_sous_titre || 'Avec un compte, code à coller dans le panier.'}</p>
           </div>
           <span style={{
-            background: 'var(--nuit)', color: 'var(--flamme)', fontFamily: 'var(--font-display)',
+            background: 'var(--nuit)', color: 'var(--or)', fontFamily: 'var(--font-display)',
             fontSize: 18, padding: '10px 20px', borderRadius: 6, letterSpacing: '0.04em',
+            border: '1px dashed var(--or)',
           }}>
-            NOUVEAUBOUGIE
+            {parametres.banniere_code || 'NOUVEAUBOUGIE'}
           </span>
         </Link>
       </section>
 
       <WaxDivider />
 
-      {/* Categories en grandes cartes */}
+      {/* Categories en grandes cartes, avec photo si dispo */}
       {categories.length > 0 && (
         <section style={{ padding: '60px 0 20px' }}>
           <div className="container">
@@ -97,14 +105,16 @@ export default function Accueil() {
                   to="/boutique"
                   style={{
                     position: 'relative', aspectRatio: '3/4', borderRadius: 8, overflow: 'hidden',
-                    background: 'linear-gradient(160deg, var(--bois-clair), var(--nuit) 85%)',
+                    background: c.image_url
+                      ? `linear-gradient(0deg, rgba(28,20,15,0.85), rgba(28,20,15,0.15)), url(${c.image_url}) center/cover`
+                      : 'linear-gradient(160deg, var(--bois-clair), var(--nuit) 85%)',
                     border: '1px solid var(--bois-clair)', display: 'flex', alignItems: 'flex-end', padding: 18,
                   }}
                 >
                   <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--cire)' }}>{c.nom}</span>
                   <span style={{
                     position: 'absolute', top: 14, right: 14, width: 30, height: 30, borderRadius: '50%',
-                    background: 'var(--braise)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'var(--emeraude)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: 'var(--cire)', fontSize: 15,
                   }}>→</span>
                 </Link>
@@ -163,13 +173,13 @@ export default function Accueil() {
       <section style={{ padding: '60px 0' }}>
         <div className="container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40 }}>
           <div>
-            <h3 style={{ fontSize: 22, marginBottom: 10, color: 'var(--flamme)' }}>Livraison nationale</h3>
+            <h3 style={{ fontSize: 22, marginBottom: 10, color: 'var(--emeraude-clair)' }}>Livraison nationale</h3>
             <p style={{ color: 'var(--cire-douce)', lineHeight: 1.6 }}>
               Expédiée sous 2 à 4 jours, emballée avec soin pour arriver intacte chez vous, partout en France.
             </p>
           </div>
           <div>
-            <h3 style={{ fontSize: 22, marginBottom: 10, color: 'var(--flamme)' }}>Retrait à Fampoux</h3>
+            <h3 style={{ fontSize: 22, marginBottom: 10, color: 'var(--emeraude-clair)' }}>Retrait à Fampoux</h3>
             <p style={{ color: 'var(--cire-douce)', lineHeight: 1.6 }}>
               Passez récupérer votre commande directement sur place, sans frais de port, à Fampoux (62).
             </p>
