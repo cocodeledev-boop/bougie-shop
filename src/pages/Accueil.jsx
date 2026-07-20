@@ -2,26 +2,40 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useParametres } from '../hooks/useParametres'
+import { chargerAvisResume } from '../lib/avisResume'
 import CarteProduit from '../components/CarteProduit'
 import CartePack from '../components/CartePack'
 import Avis from '../components/Avis'
 import WaxDivider from '../components/WaxDivider'
+import CompteARebours from '../components/CompteARebours'
 
 export default function Accueil() {
   const { parametres } = useParametres()
   const [produits, setProduits] = useState([])
   const [categories, setCategories] = useState([])
   const [packs, setPacks] = useState([])
+  const [avisParProduit, setAvisParProduit] = useState({})
+  const [dateFinPromo, setDateFinPromo] = useState(null)
   const carrouselRef = useRef(null)
 
   useEffect(() => {
-    supabase.from('produits').select('*').eq('actif', true).order('created_at', { ascending: false }).limit(10)
+    supabase.from('produits').select('*').eq('actif', true)
+      .order('coup_de_coeur', { ascending: false }).order('created_at', { ascending: false }).limit(10)
       .then(({ data }) => setProduits(data || []))
     supabase.from('categories').select('*').order('ordre').limit(5)
       .then(({ data }) => setCategories(data || []))
     supabase.from('packs').select('*, packs_produits(quantite, produits(prix))').eq('actif', true).limit(4)
       .then(({ data }) => setPacks(data || []))
+    chargerAvisResume().then(setAvisParProduit)
   }, [])
+
+  useEffect(() => {
+    if (!parametres.banniere_code) return
+    supabase.from('codes_promo').select('date_fin').eq('code', parametres.banniere_code).maybeSingle()
+      .then(({ data }) => setDateFinPromo(data?.date_fin || null))
+  }, [parametres.banniere_code])
+
+  const coupsDeCoeur = produits.filter(p => p.coup_de_coeur)
 
   function defiler(direction) {
     carrouselRef.current?.scrollBy({ left: direction * 320, behavior: 'smooth' })
@@ -79,7 +93,8 @@ export default function Accueil() {
         >
           <div>
             <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--cire)' }}>{parametres.banniere_titre || '-10% sur votre première commande'}</p>
-            <p style={{ fontSize: 14, color: 'rgba(245,232,211,0.9)' }}>{parametres.banniere_sous_titre || 'Avec un compte, code à coller dans le panier.'}</p>
+            <p style={{ fontSize: 14, color: 'rgba(245,232,211,0.9)', marginBottom: dateFinPromo ? 10 : 0 }}>{parametres.banniere_sous_titre || 'Avec un compte, code à coller dans le panier.'}</p>
+            {dateFinPromo && <CompteARebours dateFin={dateFinPromo} />}
           </div>
           <span style={{
             background: 'var(--nuit)', color: 'var(--or)', fontFamily: 'var(--font-display)',
@@ -92,6 +107,21 @@ export default function Accueil() {
       </section>
 
       <WaxDivider />
+
+      {/* Coups de coeur — mise en avant forte, couleur or pour guider le choix du client */}
+      {coupsDeCoeur.length > 0 && (
+        <section style={{ padding: '50px 0 10px' }}>
+          <div className="container">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 26 }}>
+              <span style={{ color: 'var(--or)', fontSize: 22 }}>★</span>
+              <h2 style={{ fontSize: 26 }}>Nos coups de cœur</h2>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 20 }}>
+              {coupsDeCoeur.map(p => <CarteProduit key={p.id} produit={p} avis={avisParProduit[p.id]} />)}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Categories en grandes cartes, avec photo si dispo */}
       {categories.length > 0 && (
@@ -142,7 +172,7 @@ export default function Accueil() {
             }}>
               {produits.map(p => (
                 <div key={p.id} style={{ minWidth: 240, scrollSnapAlign: 'start' }}>
-                  <CarteProduit produit={p} />
+                  <CarteProduit produit={p} avis={avisParProduit[p.id]} />
                 </div>
               ))}
             </div>

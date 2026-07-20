@@ -18,6 +18,7 @@ export default function Footer() {
           <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--cire-douce)' }}>Boutique</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <Link to="/boutique" style={{ fontSize: 13, color: 'var(--fumee)' }}>Toutes les bougies</Link>
+            <Link to="/a-propos" style={{ fontSize: 13, color: 'var(--fumee)' }}>Notre histoire</Link>
             <Link to="/compte" style={{ fontSize: 13, color: 'var(--fumee)' }}>Mon compte</Link>
           </div>
         </div>

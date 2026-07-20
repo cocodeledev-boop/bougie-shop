@@ -47,7 +47,7 @@ export default function Commande() {
 
       const lignes = articles.map(a => ({
         commande_id: commande.id,
-        produit_id: a.id,
+        produit_id: (a.produitId || a.id)?.toString().startsWith('pack-') ? null : (a.produitId || a.id),
         nom_produit: a.nom,
         quantite: a.quantite,
         prix_unitaire: (a.reduction_par_deux && a.quantite >= 2) ? a.prix * 0.9 : a.prix,

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useParametres } from '../hooks/useParametres'
 import { supabase } from '../lib/supabase'
+import { genererFacturePDF } from '../lib/facture'
 
 const LIBELLES_STATUT = {
   en_attente: 'En attente de paiement',
@@ -14,6 +16,7 @@ const LIBELLES_STATUT = {
 
 export default function Compte() {
   const { user, profil, loading } = useAuth()
+  const { parametres } = useParametres()
   const [commandes, setCommandes] = useState([])
 
   useEffect(() => {
@@ -32,7 +35,15 @@ export default function Compte() {
   return (
     <div className="container" style={{ padding: '56px 24px 90px', maxWidth: 760 }}>
       <h1 style={{ fontSize: 30, marginBottom: 6 }}>Bonjour {profil?.prenom || ''}</h1>
-      <p style={{ color: 'var(--fumee)', marginBottom: 40 }}>{user.email}</p>
+      <p style={{ color: 'var(--fumee)', marginBottom: 20 }}>{user.email}</p>
+
+      <div className="carte" style={{ padding: 18, marginBottom: 40, display: 'flex', alignItems: 'center', gap: 14 }}>
+        <span style={{ fontSize: 26 }}>🎁</span>
+        <div>
+          <p style={{ fontSize: 15, fontWeight: 600 }}>{profil?.points_fidelite || 0} points de fidélité</p>
+          <p style={{ fontSize: 13, color: 'var(--fumee)' }}>1 point gagné par euro dépensé — contacte-nous pour les échanger contre une réduction.</p>
+        </div>
+      </div>
 
       <h2 style={{ fontSize: 20, marginBottom: 18 }}>Mes commandes</h2>
 
@@ -58,10 +69,18 @@ export default function Compte() {
                   </div>
                 ))}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, borderTop: '1px solid var(--bois-clair)', paddingTop: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, borderTop: '1px solid var(--bois-clair)', paddingTop: 10, marginBottom: c.statut !== 'en_attente' ? 12 : 0 }}>
                 <span>Total</span>
                 <span>{c.total.toFixed(2)} €</span>
               </div>
+              {c.statut !== 'en_attente' && c.statut !== 'annulee' && (
+                <button
+                  className="btn btn-secondary" style={{ padding: '7px 14px', fontSize: 13 }}
+                  onClick={() => genererFacturePDF(c, parametres.nom_boutique)}
+                >
+                  📄 Télécharger la facture
+                </button>
+              )}
             </div>
           ))}
         </div>

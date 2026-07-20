@@ -81,3 +81,30 @@ Cette version ajoute :
 - Bandeau de confiance (livraison offerte dès 50€, expédition rapide, marque française) et pied de page complet
 
 Aucune nouvelle variable d'environnement à ajouter — tout fonctionne avec ce qui est déjà configuré.
+
+## Dernières nouveautés (galerie, favoris, fidélité, emails...)
+
+Cette mise à jour ajoute énormément de fonctionnalités. Voici ce qui nécessite une action de ta part :
+
+### Emails automatiques (optionnel, sinon ignorés silencieusement)
+1. Crée un compte gratuit sur https://resend.com
+2. Récupère ta clé API (Dashboard → API Keys)
+3. Ajoute dans Netlify (variables d'environnement) : `RESEND_API_KEY` = ta clé
+4. Optionnel : `EMAIL_EXPEDITEUR` = l'adresse d'envoi (sinon utilise une adresse de test Resend par défaut)
+5. Sans compte Resend configuré, le site fonctionne normalement, les emails sont juste ignorés (pas d'erreur)
+
+### Pixels publicitaires (optionnel)
+Dans l'admin → Réglages, colle ton Meta Pixel ID et/ou TikTok Pixel ID une fois que tu as créé tes comptes pub — ça s'active automatiquement sur tout le site.
+
+### Nouvelles fonctionnalités actives immédiatement (rien à configurer)
+- Galerie multi-photos par bougie (admin → Produits → "Photos supplémentaires")
+- Favoris (cœur sur chaque bougie, page "Favoris" dans le menu)
+- Filtres prix/parfum dans la boutique
+- Zoom photo sur la fiche produit (clic sur l'image)
+- Compression automatique des photos à l'upload (plus rapide)
+- Compte à rebours réel sur les codes promo (ajoute une "date de fin" en créant un code)
+- Suggestions "Complète ta commande" dans le panier
+- Export CSV des commandes + statistiques (chiffre d'affaires, meilleures ventes) dans l'admin → Commandes
+- Factures PDF téléchargeables par le client (page "Mon compte")
+- Programme de fidélité (1 point par euro dépensé, visible dans "Mon compte")
+- Page "Notre histoire" (À propos), texte modifiable dans l'admin → Réglages

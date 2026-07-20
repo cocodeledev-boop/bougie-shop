@@ -1,16 +1,28 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../contexts/CartContext'
 import { useAuth } from '../contexts/AuthContext'
 import { validerCodePromo } from '../lib/codePromo'
+import { supabase } from '../lib/supabase'
 
 export default function PanierTiroir({ ouvert, onFermer }) {
-  const { articles, modifierQuantite, retirer, sousTotal, total, codePromo, definirCodePromo, retirerCodePromo, reductionCode } = useCart()
+  const { articles, modifierQuantite, retirer, sousTotal, total, codePromo, definirCodePromo, retirerCodePromo, reductionCode, ajouter } = useCart()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [saisieCode, setSaisieCode] = useState('')
   const [messageCode, setMessageCode] = useState('')
   const [verification, setVerification] = useState(false)
+  const [suggestions, setSuggestions] = useState([])
+
+  useEffect(() => {
+    if (!ouvert || articles.length === 0) return
+    const idsDansPanier = articles.map(a => a.produitId || a.id)
+    supabase.from('produits').select('id, nom, prix, image_url, couleur').eq('actif', true)
+      .order('coup_de_coeur', { ascending: false }).limit(6)
+      .then(({ data }) => {
+        setSuggestions((data || []).filter(p => !idsDansPanier.includes(p.id)).slice(0, 3))
+      })
+  }, [ouvert, articles.length])
 
   if (!ouvert) return null
 
@@ -76,6 +88,32 @@ export default function PanierTiroir({ ouvert, onFermer }) {
               ))}
             </div>
           )}
+
+          {suggestions.length > 0 && (
+            <div style={{ marginTop: 26 }}>
+              <p style={{ fontSize: 13, color: 'var(--fumee)', marginBottom: 12 }}>Complète ta commande</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {suggestions.map(p => (
+                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{
+                      width: 42, height: 42, borderRadius: 4, background: 'var(--bois-clair)', flexShrink: 0,
+                      backgroundImage: p.image_url ? `url(${p.image_url})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center',
+                    }} />
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: 13 }}>{p.nom}</p>
+                      <p style={{ fontSize: 12, color: 'var(--fumee)' }}>{p.prix.toFixed(2)} €</p>
+                    </div>
+                    <button
+                      onClick={() => { ajouter(p); setSuggestions(s => s.filter(x => x.id !== p.id)) }}
+                      className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }}
+                    >
+                      + Ajouter
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {articles.length > 0 && (
@@ -122,6 +160,9 @@ export default function PanierTiroir({ ouvert, onFermer }) {
             >
               Passer commande
             </button>
+            <p style={{ fontSize: 11, color: 'var(--fumee)', marginTop: 8, textAlign: 'center' }}>
+              🔒 Paiement 100% sécurisé via Stripe
+            </p>
           </div>
         )}
       </div>

@@ -7,9 +7,12 @@ import PanierTiroir from './components/PanierTiroir'
 import BarreConfiance from './components/BarreConfiance'
 import Footer from './components/Footer'
 import PopupBienvenue from './components/PopupBienvenue'
+import Pixels from './components/Pixels'
 import Accueil from './pages/Accueil'
 import Boutique from './pages/Boutique'
 import DetailProduit from './pages/DetailProduit'
+import Favoris from './pages/Favoris'
+import APropos from './pages/APropos'
 import Connexion from './pages/Connexion'
 import Inscription from './pages/Inscription'
 import Compte from './pages/Compte'
@@ -24,6 +27,7 @@ export default function App() {
     <AuthProvider>
       <CartProvider>
         <BrowserRouter>
+          <Pixels />
           <Header onOuvrirPanier={() => setPanierOuvert(true)} />
           <BarreConfiance />
           <PanierTiroir ouvert={panierOuvert} onFermer={() => setPanierOuvert(false)} />
@@ -33,6 +37,8 @@ export default function App() {
               <Route path="/" element={<Accueil />} />
               <Route path="/boutique" element={<Boutique />} />
               <Route path="/boutique/:id" element={<DetailProduit />} />
+              <Route path="/favoris" element={<Favoris />} />
+              <Route path="/a-propos" element={<APropos />} />
               <Route path="/connexion" element={<Connexion />} />
               <Route path="/inscription" element={<Inscription />} />
               <Route path="/compte" element={<Compte />} />

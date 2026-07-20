@@ -35,14 +35,23 @@ export function CartProvider({ children }) {
     }
   }, [codePromo])
 
-  function ajouter(produit, quantite = 1) {
+  function ajouter(produit, quantite = 1, options = null) {
+    // "options" = { parfum: {id, nom, supplement_prix}, taille: {id, nom, supplement_prix} } ou null
+    const supplement = (options?.parfum?.supplement_prix || 0) + (options?.taille?.supplement_prix || 0)
+    const prixFinal = produit.prix + supplement
+    const idLigne = options
+      ? `${produit.id}::${options.parfum?.id || ''}::${options.taille?.id || ''}`
+      : produit.id
+    const detailsOptions = [options?.parfum?.nom, options?.taille?.nom].filter(Boolean).join(', ')
+    const nomAffiche = detailsOptions ? `${produit.nom} (${detailsOptions})` : produit.nom
+
     setArticles(prev => {
-      const existant = prev.find(a => a.id === produit.id)
+      const existant = prev.find(a => a.id === idLigne)
       if (existant) {
-        return prev.map(a => a.id === produit.id ? { ...a, quantite: a.quantite + quantite } : a)
+        return prev.map(a => a.id === idLigne ? { ...a, quantite: a.quantite + quantite } : a)
       }
       return [...prev, {
-        id: produit.id, nom: produit.nom, prix: produit.prix, image_url: produit.image_url,
+        id: idLigne, produitId: produit.id, nom: nomAffiche, prix: prixFinal, image_url: produit.image_url,
         reduction_par_deux: produit.reduction_par_deux || false, quantite,
       }]
     })

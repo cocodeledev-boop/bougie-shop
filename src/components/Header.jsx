@@ -59,6 +59,7 @@ export default function Header({ onOuvrirPanier }) {
 
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+              <Link to="/favoris" style={{ fontSize: 15, color: 'var(--cire-douce)' }}>Favoris</Link>
               <Link to="/compte" style={{ fontSize: 15, color: 'var(--cire-douce)' }}>Mon compte</Link>
               <button
                 onClick={async () => { await deconnexion(); navigate('/') }}
