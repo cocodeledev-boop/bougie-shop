@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useCart } from '../contexts/CartContext'
+import { useParametres } from '../hooks/useParametres'
 import { supabase } from '../lib/supabase'
 
 export default function Commande() {
   const { user, loading } = useAuth()
   const { articles, sousTotal, total, reductionCode, codePromo, vider } = useCart()
+  const { parametres } = useParametres()
   const navigate = useNavigate()
 
   const [mode, setMode] = useState('nationale')
@@ -20,6 +22,11 @@ export default function Commande() {
   if (!user) return <Navigate to="/connexion" />
   if (articles.length === 0) return <Navigate to="/boutique" />
 
+  const seuilGratuit = parseFloat(parametres.seuil_livraison_gratuite || 50)
+  const fraisLivraisonBase = parseFloat(parametres.frais_livraison || 4.9)
+  const fraisLivraison = mode === 'nationale' && total < seuilGratuit ? fraisLivraisonBase : 0
+  const totalAvecLivraison = total + fraisLivraison
+
   async function handleSubmit(e) {
     e.preventDefault()
     setErreur('')
@@ -31,8 +38,9 @@ export default function Commande() {
         .insert({
           user_id: user.id,
           statut: 'en_attente',
-          total,
+          total: totalAvecLivraison,
           mode_livraison: mode,
+          frais_livraison: fraisLivraison,
           adresse_livraison: mode === 'nationale' ? adresse : null,
           ville_livraison: mode === 'nationale' ? ville : null,
           code_postal_livraison: mode === 'nationale' ? codePostal : null,
@@ -60,10 +68,13 @@ export default function Commande() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           commandeId: commande.id,
-          articles: articles.map(a => ({
-            nom: a.nom, quantite: a.quantite,
-            prix: (a.reduction_par_deux && a.quantite >= 2) ? a.prix * 0.9 : a.prix,
-          })),
+          articles: [
+            ...articles.map(a => ({
+              nom: a.nom, quantite: a.quantite,
+              prix: (a.reduction_par_deux && a.quantite >= 2) ? a.prix * 0.9 : a.prix,
+            })),
+            ...(fraisLivraison > 0 ? [{ nom: 'Frais de livraison', quantite: 1, prix: fraisLivraison }] : []),
+          ],
           reductionPourcentage: codePromo?.pourcentage || 0,
         }),
       })
@@ -135,9 +146,18 @@ export default function Commande() {
               <span>−{reductionCode.toFixed(2)} €</span>
             </div>
           )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginTop: 6, color: fraisLivraison === 0 ? 'var(--emeraude-clair)' : 'var(--cire-douce)' }}>
+            <span>Livraison</span>
+            <span>{fraisLivraison === 0 ? (mode === 'nationale' ? 'Offerte' : 'Retrait gratuit') : `${fraisLivraison.toFixed(2)} €`}</span>
+          </div>
+          {mode === 'nationale' && fraisLivraison > 0 && (
+            <p style={{ fontSize: 12, color: 'var(--fumee)', marginTop: 4 }}>
+              Encore {(seuilGratuit - total).toFixed(2)} € d'achat pour la livraison offerte
+            </p>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, borderTop: '1px solid var(--bois-clair)', marginTop: 10, paddingTop: 10 }}>
             <span>Total</span>
-            <span>{total.toFixed(2)} €</span>
+            <span>{totalAvecLivraison.toFixed(2)} €</span>
           </div>
         </div>
 

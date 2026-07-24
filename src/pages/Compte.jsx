@@ -69,10 +69,15 @@ export default function Compte() {
                   </div>
                 ))}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, borderTop: '1px solid var(--bois-clair)', paddingTop: 10, marginBottom: c.statut !== 'en_attente' ? 12 : 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, borderTop: '1px solid var(--bois-clair)', paddingTop: 10, marginBottom: (c.statut !== 'en_attente' || c.numero_suivi) ? 8 : 0 }}>
                 <span>Total</span>
                 <span>{c.total.toFixed(2)} €</span>
               </div>
+              {c.numero_suivi && (
+                <p style={{ fontSize: 13, color: 'var(--flamme)', marginBottom: 12 }}>
+                  📦 Suivi{c.transporteur ? ` (${c.transporteur})` : ''} : <strong>{c.numero_suivi}</strong>
+                </p>
+              )}
               {c.statut !== 'en_attente' && c.statut !== 'annulee' && (
                 <button
                   className="btn btn-secondary" style={{ padding: '7px 14px', fontSize: 13 }}

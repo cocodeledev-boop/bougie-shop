@@ -833,6 +833,17 @@ function GestionReglages() {
         <input value={valeurs.nom_boutique || ''} onChange={e => definir('nom_boutique', e.target.value)} />
       </div>
 
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <div className="champ">
+          <label>Frais de livraison (€)</label>
+          <input type="number" step="0.01" value={valeurs.frais_livraison || ''} onChange={e => definir('frais_livraison', e.target.value)} />
+        </div>
+        <div className="champ">
+          <label>Livraison offerte à partir de (€)</label>
+          <input type="number" step="0.01" value={valeurs.seuil_livraison_gratuite || ''} onChange={e => definir('seuil_livraison_gratuite', e.target.value)} />
+        </div>
+      </div>
+
       <div className="champ">
         <label>Logo (remplace la petite flamme dans le menu)</label>
         <ChampPhoto valeur={valeurs.logo_url} onChange={url => definir('logo_url', url)} />
@@ -862,6 +873,24 @@ function GestionReglages() {
       <div className="champ">
         <label>Texte de la page "Notre histoire" (À propos)</label>
         <textarea rows={5} value={valeurs.a_propos_texte || ''} onChange={e => definir('a_propos_texte', e.target.value)} />
+      </div>
+
+      <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 10, marginTop: 24 }}>Textes des emails automatiques</p>
+      <div className="champ">
+        <label>Email de confirmation de commande</label>
+        <textarea rows={2} value={valeurs.email_confirmation_texte || ''} onChange={e => definir('email_confirmation_texte', e.target.value)} />
+      </div>
+      <div className="champ">
+        <label>Email "commande en préparation"</label>
+        <textarea rows={2} value={valeurs.email_preparation_texte || ''} onChange={e => definir('email_preparation_texte', e.target.value)} />
+      </div>
+      <div className="champ">
+        <label>Email "commande expédiée"</label>
+        <textarea rows={2} value={valeurs.email_expedition_texte || ''} onChange={e => definir('email_expedition_texte', e.target.value)} />
+      </div>
+      <div className="champ">
+        <label>Email "commande livrée"</label>
+        <textarea rows={2} value={valeurs.email_livraison_texte || ''} onChange={e => definir('email_livraison_texte', e.target.value)} />
       </div>
 
       <div className="champ">
@@ -899,10 +928,20 @@ function GestionCommandes() {
   useEffect(() => { charger() }, [])
 
   async function changerStatut(id, statut) {
-    await supabase.from('commandes').update({ statut }).eq('id', id)
+    let numeroSuivi = null
+    let transporteur = null
+    if (statut === 'expediee') {
+      transporteur = prompt('Transporteur (ex : Colissimo, Mondial Relay) — laisse vide si tu ne sais pas encore :') || ''
+      numeroSuivi = prompt('Numéro de suivi (laisse vide si tu ne l\'as pas) :') || ''
+    }
+    await supabase.from('commandes').update({
+      statut,
+      ...(numeroSuivi ? { numero_suivi: numeroSuivi } : {}),
+      ...(transporteur ? { transporteur } : {}),
+    }).eq('id', id)
     fetch('/.netlify/functions/notifier-statut-commande', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ commandeId: id, statut }),
+      body: JSON.stringify({ commandeId: id, statut, numeroSuivi, transporteur }),
     }).catch(() => {})
     charger()
   }
@@ -990,6 +1029,11 @@ function GestionCommandes() {
           </div>
           {c.adresse_livraison && (
             <p style={{ fontSize: 13, color: 'var(--fumee)', marginBottom: 8 }}>{c.adresse_livraison}, {c.code_postal_livraison} {c.ville_livraison}</p>
+          )}
+          {c.numero_suivi && (
+            <p style={{ fontSize: 13, color: 'var(--flamme)', marginBottom: 8 }}>
+              📦 Suivi{c.transporteur ? ` (${c.transporteur})` : ''} : {c.numero_suivi}
+            </p>
           )}
           <div style={{ fontSize: 14, color: 'var(--cire-douce)', marginBottom: 10 }}>
             {c.commande_articles?.map(a => <div key={a.id}>{a.quantite} × {a.nom_produit}</div>)}

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useCart } from '../contexts/CartContext'
@@ -12,6 +13,10 @@ export default function Header({ onOuvrirPanier }) {
   const location = useLocation()
 
   const nomBoutique = parametres.nom_boutique || 'Lueur & Cire'
+
+  useEffect(() => {
+    if (parametres.nom_boutique) document.title = parametres.nom_boutique
+  }, [parametres.nom_boutique])
 
   // Le bouton "Boutique" ramene toujours en haut d'une boutique fraiche,
   // meme si on est deja sur la page (comme le clic sur le logo ramene a l'accueil)

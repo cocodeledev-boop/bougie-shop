@@ -55,16 +55,19 @@ export default async (req) => {
       // Email de confirmation de commande
       if (commande?.user_id) {
         const { data: utilisateur } = await supabase.auth.admin.getUserById(commande.user_id)
-        const { data: parametres } = await supabase.from('parametres_site').select('cle, valeur').eq('cle', 'nom_boutique').maybeSingle()
+        const { data: reglages } = await supabase.from('parametres_site').select('cle, valeur').in('cle', ['nom_boutique', 'email_confirmation_texte'])
+        const nomBoutique = reglages?.find(r => r.cle === 'nom_boutique')?.valeur || 'Lueur & Cire'
+        const texte = reglages?.find(r => r.cle === 'email_confirmation_texte')?.valeur
+          || 'Merci pour votre commande ! Nous préparons votre colis avec soin, vous recevrez un email dès qu\'il sera expédié.'
         if (utilisateur?.user?.email) {
           await envoyerEmail({
             destinataire: utilisateur.user.email,
-            sujet: `Confirmation de votre commande — ${parametres?.valeur || 'Lueur & Cire'}`,
+            sujet: `Confirmation de votre commande — ${nomBoutique}`,
             html: `
               <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
                 <h2>Merci pour votre commande ! 🕯️</h2>
                 <p>Votre paiement de <strong>${commande.total.toFixed(2)} €</strong> a bien été reçu.</p>
-                <p>Nous préparons votre commande avec soin, vous recevrez un email dès qu'elle sera expédiée.</p>
+                <p>${texte}</p>
                 <p style="color:#888; font-size: 13px; margin-top: 30px;">Vous pouvez suivre votre commande à tout moment depuis votre compte sur le site.</p>
               </div>
             `,
