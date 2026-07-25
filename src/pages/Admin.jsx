@@ -835,13 +835,46 @@ function GestionReglages() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <div className="champ">
-          <label>Frais de livraison (€)</label>
+          <label>Frais de livraison à domicile (€)</label>
           <input type="number" step="0.01" value={valeurs.frais_livraison || ''} onChange={e => definir('frais_livraison', e.target.value)} />
+        </div>
+        <div className="champ">
+          <label>Frais de livraison point relais (€)</label>
+          <input type="number" step="0.01" value={valeurs.frais_livraison_point_relais || ''} onChange={e => definir('frais_livraison_point_relais', e.target.value)} />
         </div>
         <div className="champ">
           <label>Livraison offerte à partir de (€)</label>
           <input type="number" step="0.01" value={valeurs.seuil_livraison_gratuite || ''} onChange={e => definir('seuil_livraison_gratuite', e.target.value)} />
         </div>
+      </div>
+
+      <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 10, marginTop: 10, color: 'var(--flamme)' }}>Informations légales (obligatoires)</p>
+      <div className="champ">
+        <label>SIRET / numéro KBIS</label>
+        <input value={valeurs.siret || ''} onChange={e => definir('siret', e.target.value)} placeholder="Ex : 123 456 789 00012" />
+        <p style={{ fontSize: 12, color: 'var(--fumee)', marginTop: 4 }}>Affiché en bas du site — obligatoire légalement pour vendre en ligne</p>
+      </div>
+      <div className="champ">
+        <label>Mentions légales (optionnel)</label>
+        <textarea rows={3} value={valeurs.mentions_legales || ''} onChange={e => definir('mentions_legales', e.target.value)} placeholder="Responsable de publication, hébergeur, politique de confidentialité..." />
+      </div>
+
+      <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 10, marginTop: 10, color: 'var(--flamme)' }}>Réseaux sociaux</p>
+      <div className="champ">
+        <label>Instagram (URL complète)</label>
+        <input value={valeurs.instagram_url || ''} onChange={e => definir('instagram_url', e.target.value)} placeholder="https://www.instagram.com/toncompte" />
+      </div>
+      <div className="champ">
+        <label>TikTok (URL complète)</label>
+        <input value={valeurs.tiktok_url || ''} onChange={e => definir('tiktok_url', e.target.value)} placeholder="https://www.tiktok.com/@toncompte" />
+      </div>
+      <div className="champ">
+        <label>Facebook (URL complète)</label>
+        <input value={valeurs.facebook_url || ''} onChange={e => definir('facebook_url', e.target.value)} placeholder="https://www.facebook.com/tapage" />
+      </div>
+      <div className="champ">
+        <label>Texte bas de footer (optionnel)</label>
+        <textarea rows={2} value={valeurs.footer_texte || ''} onChange={e => definir('footer_texte', e.target.value)} placeholder="Ex : Bougies artisanales fabriquées à Fampoux depuis 2025" />
       </div>
 
       <div className="champ">

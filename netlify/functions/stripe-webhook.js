@@ -42,7 +42,15 @@ export default async (req) => {
           .select()
       }
 
-      // Programme de fidelite : 1 point par euro depense
+      // Decrementation du stock pour chaque article commande
+      const { data: lignes } = await supabase.from('commande_articles').select('produit_id, quantite').eq('commande_id', commandeId)
+      for (const ligne of lignes || []) {
+        if (!ligne.produit_id) continue
+        const { data: produit } = await supabase.from('produits').select('stock').eq('id', ligne.produit_id).single()
+        if (produit) {
+          await supabase.from('produits').update({ stock: Math.max(0, produit.stock - ligne.quantite) }).eq('id', ligne.produit_id)
+        }
+      }
       if (commande?.user_id) {
         const pointsGagnes = Math.floor(commande.total)
         const { data: profilActuel } = await supabase.from('profils').select('points_fidelite').eq('id', commande.user_id).single()
