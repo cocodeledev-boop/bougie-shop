@@ -82,7 +82,21 @@ export function CartProvider({ children }) {
     setCodePromo(null)
   }
 
-  // Ligne par ligne : si la bougie est en "2 achetées = -10%" et qu'on en a au moins 2, on applique la reduction sur cette ligne
+  const [pointsUtilises, setPointsUtilises] = useState(0)
+
+  function utiliserPoints(pointsDisponibles) {
+    // 100 points = 5€ — on calcule combien de paliers le client peut utiliser
+    const paliersMax = Math.floor(pointsDisponibles / 100)
+    setPointsUtilises(paliersMax * 100)
+  }
+
+  function retirerPoints() {
+    setPointsUtilises(0)
+  }
+
+  const reductionPoints = (pointsUtilises / 100) * 5
+
+  // Sous-total après réduction par 2 ligne par ligne
   const sousTotal = articles.reduce((sum, a) => {
     const lignePleine = a.prix * a.quantite
     const ligneAvecRemise = (a.reduction_par_deux && a.quantite >= 2) ? lignePleine * 0.9 : lignePleine
@@ -90,7 +104,7 @@ export function CartProvider({ children }) {
   }, 0)
 
   const reductionCode = codePromo ? sousTotal * (codePromo.pourcentage / 100) : 0
-  const total = Math.max(0, sousTotal - reductionCode)
+  const total = Math.max(0, sousTotal - reductionCode - reductionPoints)
   const nombreArticles = articles.reduce((sum, a) => sum + a.quantite, 0)
 
   return (
@@ -98,6 +112,7 @@ export function CartProvider({ children }) {
       articles, ajouter, modifierQuantite, retirer, vider,
       sousTotal, total, nombreArticles,
       codePromo, definirCodePromo, retirerCodePromo, reductionCode,
+      pointsUtilises, utiliserPoints, retirerPoints, reductionPoints,
     }}>
       {children}
     </CartContext.Provider>

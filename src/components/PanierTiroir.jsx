@@ -6,13 +6,20 @@ import { validerCodePromo } from '../lib/codePromo'
 import { supabase } from '../lib/supabase'
 
 export default function PanierTiroir({ ouvert, onFermer }) {
-  const { articles, modifierQuantite, retirer, sousTotal, total, codePromo, definirCodePromo, retirerCodePromo, reductionCode, ajouter } = useCart()
-  const { user } = useAuth()
+  const {
+    articles, modifierQuantite, retirer, sousTotal, total,
+    codePromo, definirCodePromo, retirerCodePromo, reductionCode, ajouter,
+    pointsUtilises, utiliserPoints, retirerPoints, reductionPoints,
+  } = useCart()
+  const { user, profil } = useAuth()
   const navigate = useNavigate()
   const [saisieCode, setSaisieCode] = useState('')
   const [messageCode, setMessageCode] = useState('')
   const [verification, setVerification] = useState(false)
   const [suggestions, setSuggestions] = useState([])
+
+  const pointsDisponibles = profil?.points_fidelite || 0
+  const paliersDisponibles = Math.floor(pointsDisponibles / 100)
 
   useEffect(() => {
     if (!ouvert || articles.length === 0) return
@@ -136,7 +143,46 @@ export default function PanierTiroir({ ouvert, onFermer }) {
                 </button>
               </form>
             )}
-            {messageCode && <p style={{ fontSize: 13, color: 'var(--erreur)', marginBottom: 14 }}>{messageCode}</p>}
+            {messageCode && <p style={{ fontSize: 13, color: 'var(--erreur)', marginBottom: 10 }}>{messageCode}</p>}
+
+            {/* Bloc points fidélité */}
+            {user && paliersDisponibles > 0 && (
+              <div style={{
+                background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.25)',
+                borderRadius: 8, padding: '12px 14px', marginBottom: 14,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <p style={{ fontSize: 13, color: 'var(--or)', fontWeight: 600 }}>⭐ {pointsDisponibles} points disponibles</p>
+                    <p style={{ fontSize: 11, color: 'var(--fumee)' }}>100 points = 5 € de réduction</p>
+                  </div>
+                  {pointsUtilises > 0 ? (
+                    <button onClick={retirerPoints} style={{ background: 'none', color: 'var(--fumee)', fontSize: 12 }}>
+                      Annuler
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => utiliserPoints(pointsDisponibles)}
+                      className="btn btn-secondary"
+                      style={{ padding: '6px 12px', fontSize: 12 }}
+                    >
+                      Utiliser (−{paliersDisponibles * 5} €)
+                    </button>
+                  )}
+                </div>
+                {pointsUtilises > 0 && (
+                  <p style={{ fontSize: 12, color: 'var(--or)', marginTop: 8 }}>
+                    ✅ {pointsUtilises} points utilisés → −{reductionPoints.toFixed(2)} € appliqués
+                  </p>
+                )}
+              </div>
+            )}
+
+            {user && pointsDisponibles < 100 && pointsDisponibles > 0 && (
+              <p style={{ fontSize: 12, color: 'var(--fumee)', marginBottom: 12 }}>
+                ⭐ {pointsDisponibles} points (encore {100 - pointsDisponibles} pour obtenir −5 €)
+              </p>
+            )}
 
             {reductionCode > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: 'var(--fumee)', marginBottom: 6 }}>
@@ -145,9 +191,15 @@ export default function PanierTiroir({ ouvert, onFermer }) {
               </div>
             )}
             {reductionCode > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: 'var(--flamme)', marginBottom: 10 }}>
-                <span>Réduction</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: 'var(--flamme)', marginBottom: 6 }}>
+                <span>Réduction code</span>
                 <span>−{reductionCode.toFixed(2)} €</span>
+              </div>
+            )}
+            {reductionPoints > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: 'var(--or)', marginBottom: 6 }}>
+                <span>⭐ Points fidélité ({pointsUtilises} pts)</span>
+                <span>−{reductionPoints.toFixed(2)} €</span>
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, fontSize: 17 }}>

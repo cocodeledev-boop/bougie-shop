@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useCart } from '../contexts/CartContext'
@@ -6,28 +6,13 @@ import { useParametres } from '../hooks/useParametres'
 import { supabase } from '../lib/supabase'
 
 const MODES_LIVRAISON = [
-  {
-    id: 'nationale',
-    icone: '🏠',
-    titre: 'Livraison à domicile',
-    detail: 'Colissimo — 2 à 4 jours ouvrés',
-  },
-  {
-    id: 'point_relais',
-    icone: '📮',
-    titre: 'Point relais',
-    detail: 'Mondial Relay — 3 à 5 jours ouvrés',
-  },
-  {
-    id: 'drive_fampoux',
-    icone: '📍',
-    titre: 'Retrait à Fampoux',
-    detail: 'Gratuit — à convenir ensemble',
-  },
+  { id: 'nationale', icone: '🏠', titre: 'Livraison à domicile', detail: 'Colissimo — 2 à 4 jours ouvrés' },
+  { id: 'point_relais', icone: '📮', titre: 'Point relais', detail: 'Mondial Relay — 3 à 5 jours ouvrés' },
+  { id: 'drive_fampoux', icone: '📍', titre: 'Retrait à Fampoux', detail: 'Gratuit — à convenir ensemble' },
 ]
 
 export default function Commande() {
-  const { user, loading } = useAuth()
+  const { user, loading, profil } = useAuth()
   const { articles, sousTotal, total, reductionCode, codePromo, vider } = useCart()
   const { parametres } = useParametres()
   const navigate = useNavigate()
@@ -37,6 +22,7 @@ export default function Commande() {
   const [ville, setVille] = useState('')
   const [codePostal, setCodePostal] = useState('')
   const [pointRelais, setPointRelais] = useState('')
+  const [utiliserPoints, setUtiliserPoints] = useState(false)
   const [erreur, setErreur] = useState('')
   const [envoi, setEnvoi] = useState(false)
 
@@ -44,16 +30,27 @@ export default function Commande() {
   if (!user) return <Navigate to="/connexion" />
   if (articles.length === 0) return <Navigate to="/boutique" />
 
+  const pointsDispo = profil?.points_fidelite || 0
+  const seuilPoints = parseInt(parametres.points_par_euro_reduction || 100)
+  const valeurPalier = parseFloat(parametres.valeur_euro_par_palier || 5)
+
+  // Combien de paliers complets le client peut utiliser sur cette commande
+  const paliersMax = Math.min(
+    Math.floor(pointsDispo / seuilPoints),
+    Math.floor(total / valeurPalier) // on ne peut pas avoir plus de réduction que le total
+  )
+  const reductionPoints = utiliserPoints ? paliersMax * valeurPalier : 0
+  const pointsUtilises = utiliserPoints ? paliersMax * seuilPoints : 0
+
   const seuilGratuit = parseFloat(parametres.seuil_livraison_gratuite || 50)
   const fraisNationale = parseFloat(parametres.frais_livraison || 4.9)
   const fraisPointRelais = parseFloat(parametres.frais_livraison_point_relais || 3.9)
-
   const fraisLivraison =
     mode === 'drive_fampoux' ? 0
     : mode === 'point_relais' ? (total >= seuilGratuit ? 0 : fraisPointRelais)
     : (total >= seuilGratuit ? 0 : fraisNationale)
 
-  const totalFinal = total + fraisLivraison
+  const totalFinal = Math.max(0, total - reductionPoints + fraisLivraison)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -71,6 +68,9 @@ export default function Commande() {
           statut: 'en_attente',
           total: totalFinal,
           frais_livraison: fraisLivraison,
+          reduction_montant: reductionCode + reductionPoints,
+          reduction_points: reductionPoints,
+          points_utilises: pointsUtilises,
           mode_livraison: mode,
           point_relais: mode === 'point_relais' ? pointRelais : null,
           adresse_livraison: mode === 'nationale' ? adresse : null,
@@ -94,6 +94,19 @@ export default function Commande() {
       }))
       await supabase.from('commande_articles').insert(lignes)
 
+      // Deduire immediatement les points utilises du solde du client
+      if (pointsUtilises > 0) {
+        await supabase.from('profils').update({
+          points_fidelite: Math.max(0, pointsDispo - pointsUtilises)
+        }).eq('id', user.id)
+        await supabase.from('points_fidelite_historique').insert({
+          user_id: user.id,
+          points: -pointsUtilises,
+          raison: `Réduction de ${reductionPoints.toFixed(2)} € utilisée`,
+          commande_id: commande.id,
+        })
+      }
+
       const reponse = await fetch('/.netlify/functions/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -105,6 +118,7 @@ export default function Commande() {
               prix: (a.reduction_par_deux && a.quantite >= 2) ? a.prix * 0.9 : a.prix,
             })),
             ...(fraisLivraison > 0 ? [{ nom: 'Frais de livraison', quantite: 1, prix: fraisLivraison }] : []),
+            ...(reductionPoints > 0 ? [{ nom: `Points fidélité (${pointsUtilises} pts)`, quantite: 1, prix: -reductionPoints }] : []),
           ],
           reductionPourcentage: codePromo?.pourcentage || 0,
         }),
