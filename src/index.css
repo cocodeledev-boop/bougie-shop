@@ -122,3 +122,41 @@ input, textarea { font-family: var(--font-body); }
 ::-webkit-scrollbar { width: 10px; }
 ::-webkit-scrollbar-track { background: var(--nuit); }
 ::-webkit-scrollbar-thumb { background: var(--bois-clair); border-radius: 10px; }
+
+/* MOBILE */
+@media (max-width: 768px) {
+
+  .container {
+    padding: 0 16px;
+  }
+
+  header .container {
+    flex-wrap: wrap;
+    height: auto !important;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    gap: 12px !important;
+  }
+
+  header nav {
+    gap: 12px !important;
+    font-size: 13px;
+  }
+
+}
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 60px;
+  align-items: center;
+}
+
+
+@media (max-width: 768px) {
+
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+
+}

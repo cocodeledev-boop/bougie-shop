@@ -48,7 +48,7 @@ export default function Accueil() {
         background: 'radial-gradient(ellipse at 30% 20%, rgba(242,166,90,0.18), transparent 55%), var(--nuit)',
         padding: '90px 0 60px'
       }}>
-        <div className="container" style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 60, alignItems: 'center' }}>
+        <div className="container hero-grid">
           <div>
             <p style={{ color: 'var(--flamme)', fontSize: 14, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 18 }}>
               Cire naturelle · fabrication en petites séries
