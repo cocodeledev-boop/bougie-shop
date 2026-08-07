@@ -72,7 +72,7 @@ export default function Accueil() {
             display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}>
             {parametres.image_hero_url ? (
-              <img src={parametres.image_hero_url} alt="Bougie Lueur & Cire" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={parametres.image_hero_url} alt="Bougie Hugoline & Compagnies" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
               <span style={{ color: 'var(--fumee)', fontSize: 14 }}>Photo de bougie à ajouter (depuis l'admin → Réglages)</span>
             )}
