@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase'
 import { useParametres } from '../hooks/useParametres'
 
 const CODE = 'NOUVEAUBOUGIE'
-const CLE_SESSION = 'popup_bienvenue_vu'
 
 export default function PopupBienvenue() {
   const { user, loading } = useAuth()
@@ -14,7 +13,6 @@ export default function PopupBienvenue() {
 
   useEffect(() => {
     if (loading || !user) return
-    if (sessionStorage.getItem(CLE_SESSION)) return
 
     let annule = false
     async function verifierEligibilite() {
@@ -36,8 +34,10 @@ export default function PopupBienvenue() {
         .eq('user_id', user.id)
         .maybeSingle()
 
+      // S'affiche à chaque chargement / actualisation de page (dans les 5 secondes)
+      // tant que le client est éligible à l'offre de bienvenue.
       if (!annule && !dejaUtilise) {
-        setTimeout(() => setVisible(true), 1200)
+        setTimeout(() => setVisible(true), 5000)
       }
     }
     verifierEligibilite()
@@ -46,7 +46,6 @@ export default function PopupBienvenue() {
 
   function fermer() {
     setVisible(false)
-    sessionStorage.setItem(CLE_SESSION, '1')
   }
 
   function copier() {
