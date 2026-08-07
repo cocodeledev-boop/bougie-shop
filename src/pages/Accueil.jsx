@@ -54,7 +54,7 @@ export default function Accueil() {
               Cire naturelle · fabrication en petites séries
             </p>
             <h1 style={{ fontSize: 'clamp(38px, 5vw, 58px)', marginBottom: 22 }}>
-              Une flamme qui <em style={{ fontStyle: 'italic', color: 'var(--flamme)' }}>ralentit</em> le temps.
+              Une flamme qui <em className="flamme-vive" style={{ fontStyle: 'italic', color: 'var(--flamme)' }}>ralentit</em> le temps.
             </h1>
             <p style={{ fontSize: 17, color: 'var(--cire-douce)', maxWidth: 460, marginBottom: 34, lineHeight: 1.6 }}>
               Bougies coulées à la main, parfums choisis un à un. Livrées partout en France,
@@ -69,6 +69,7 @@ export default function Accueil() {
             aspectRatio: '4/5', borderRadius: 8, overflow: 'hidden',
             background: 'linear-gradient(160deg, var(--bois-clair), var(--bois) 70%)',
             border: '1px solid var(--bois-clair)',
+            boxShadow: '0 30px 70px rgba(0,0,0,0.45), 0 0 0 1px rgba(242,166,90,0.06)',
             display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}>
             {parametres.image_hero_url ? (
@@ -133,6 +134,7 @@ export default function Accueil() {
                 <Link
                   key={c.id}
                   to="/boutique"
+                  className="carte-vivante"
                   style={{
                     position: 'relative', aspectRatio: '3/4', borderRadius: 8, overflow: 'hidden',
                     background: c.image_url
