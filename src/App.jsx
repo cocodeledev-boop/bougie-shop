@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { CartProvider } from './contexts/CartContext'
 import Header from './components/Header'
+import BarreAnnonce from './components/BarreAnnonce'
 import PanierTiroir from './components/PanierTiroir'
 import BarreConfiance from './components/BarreConfiance'
 import Footer from './components/Footer'
@@ -28,6 +29,7 @@ export default function App() {
       <CartProvider>
         <BrowserRouter>
           <Pixels />
+          <BarreAnnonce />
           <Header onOuvrirPanier={() => setPanierOuvert(true)} />
           <BarreConfiance />
           <PanierTiroir ouvert={panierOuvert} onFermer={() => setPanierOuvert(false)} />
