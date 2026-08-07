@@ -1,10 +1,27 @@
 import { useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useParametres } from '../hooks/useParametres'
+import { supabase } from '../lib/supabase'
 
 // Insere les scripts de tracking Meta (Facebook/Instagram) et TikTok
 // uniquement si les IDs ont ete renseignes dans l'admin -> Reglages.
 export default function Pixels() {
   const { parametres } = useParametres()
+  const location = useLocation()
+
+  // Enregistre une visite (page + visiteur unique via session) dans Supabase
+  // a chaque changement de page, pour le compteur affiche dans Admin -> Reglages.
+  useEffect(() => {
+    let idVisiteur = localStorage.getItem('id_visiteur')
+    if (!idVisiteur) {
+      idVisiteur = crypto.randomUUID()
+      localStorage.setItem('id_visiteur', idVisiteur)
+    }
+    supabase.from('vues_pages').insert({
+      page: location.pathname,
+      id_visiteur: idVisiteur,
+    }).then()
+  }, [location.pathname])
 
   useEffect(() => {
     if (parametres.meta_pixel_id && !document.getElementById('pixel-meta')) {
