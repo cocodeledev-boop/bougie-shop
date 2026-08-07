@@ -12,7 +12,8 @@ const LIBELLES_STATUT = {
 }
 const ONGLETS = [
   ['produits', 'Produits'], ['categories', 'Catégories'], ['packs', 'Packs'],
-  ['codes', 'Codes promo'], ['avis', 'Avis'], ['commandes', 'Commandes'], ['reglages', 'Réglages'],
+  ['codes', 'Codes promo'], ['avis', 'Avis'], ['commandes', 'Commandes'],
+  ['statistiques', 'Statistiques'], ['reglages', 'Réglages'],
 ]
 
 export default function Admin() {
@@ -41,6 +42,7 @@ export default function Admin() {
       {onglet === 'codes' && <GestionCodesPromo />}
       {onglet === 'avis' && <GestionAvis />}
       {onglet === 'commandes' && <GestionCommandes />}
+      {onglet === 'statistiques' && <GestionStatistiques />}
       {onglet === 'reglages' && <GestionReglages />}
     </div>
   )
@@ -798,6 +800,75 @@ function GestionAvis() {
 
 /* ---------- REGLAGES DU SITE ---------- */
 
+function GestionStatistiques() {
+  const [chargement, setChargement] = useState(true)
+  const [vuesTotal, setVuesTotal] = useState(0)
+  const [visiteursUniques, setVisiteursUniques] = useState(0)
+  const [vuesAujourdhui, setVuesAujourdhui] = useState(0)
+  const [visiteursAujourdhui, setVisiteursAujourdhui] = useState(0)
+  const [pagesPopulaires, setPagesPopulaires] = useState([])
+
+  useEffect(() => {
+    async function charger() {
+      const { count: total } = await supabase.from('vues_pages').select('*', { count: 'exact', head: true })
+
+      const { data: toutesLesVues } = await supabase.from('vues_pages').select('id_visiteur, page, created_at')
+      setVuesTotal(total || 0)
+      setVisiteursUniques(new Set((toutesLesVues || []).map(v => v.id_visiteur)).size)
+
+      const debutJour = new Date()
+      debutJour.setHours(0, 0, 0, 0)
+      const vuesDuJour = (toutesLesVues || []).filter(v => new Date(v.created_at) >= debutJour)
+      setVuesAujourdhui(vuesDuJour.length)
+      setVisiteursAujourdhui(new Set(vuesDuJour.map(v => v.id_visiteur)).size)
+
+      const compteParPage = {}
+      for (const v of toutesLesVues || []) compteParPage[v.page] = (compteParPage[v.page] || 0) + 1
+      setPagesPopulaires(Object.entries(compteParPage).sort((a, b) => b[1] - a[1]).slice(0, 5))
+
+      setChargement(false)
+    }
+    charger()
+  }, [])
+
+  if (chargement) return <p style={{ color: 'var(--fumee)' }}>Chargement...</p>
+
+  return (
+    <div style={{ maxWidth: 700 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14, marginBottom: 20 }}>
+        <div className="carte" style={{ padding: 16 }}>
+          <p style={{ fontSize: 12, color: 'var(--fumee)' }}>Visiteurs uniques (total)</p>
+          <p style={{ fontSize: 22, fontFamily: 'var(--font-display)', color: 'var(--emeraude-clair)' }}>{visiteursUniques}</p>
+        </div>
+        <div className="carte" style={{ padding: 16 }}>
+          <p style={{ fontSize: 12, color: 'var(--fumee)' }}>Vues totales</p>
+          <p style={{ fontSize: 22, fontFamily: 'var(--font-display)' }}>{vuesTotal}</p>
+        </div>
+        <div className="carte" style={{ padding: 16 }}>
+          <p style={{ fontSize: 12, color: 'var(--fumee)' }}>Visiteurs aujourd'hui</p>
+          <p style={{ fontSize: 22, fontFamily: 'var(--font-display)', color: 'var(--flamme)' }}>{visiteursAujourdhui}</p>
+        </div>
+        <div className="carte" style={{ padding: 16 }}>
+          <p style={{ fontSize: 12, color: 'var(--fumee)' }}>Vues aujourd'hui</p>
+          <p style={{ fontSize: 22, fontFamily: 'var(--font-display)' }}>{vuesAujourdhui}</p>
+        </div>
+      </div>
+
+      {pagesPopulaires.length > 0 && (
+        <div className="carte" style={{ padding: 18 }}>
+          <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Pages les plus visitées</p>
+          {pagesPopulaires.map(([page, qte]) => (
+            <div key={page} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
+              <span style={{ color: 'var(--cire-douce)' }}>{page}</span>
+              <span style={{ color: 'var(--flamme)' }}>{qte} vues</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function GestionReglages() {
   const [valeurs, setValeurs] = useState({})
   const [chargement, setChargement] = useState(true)
@@ -979,6 +1050,13 @@ function GestionCommandes() {
     charger()
   }
 
+  async function supprimerCommande(id) {
+    if (!confirm('Supprimer définitivement cette commande ? Cette action est irréversible.')) return
+    await supabase.from('commande_articles').delete().eq('commande_id', id)
+    await supabase.from('commandes').delete().eq('id', id)
+    charger()
+  }
+
   function exporterCSV() {
     const entetes = ['Date', 'Statut', 'Total', 'Mode livraison', 'Code promo', 'Articles']
     const lignes = commandes.map(c => [
@@ -1060,6 +1138,12 @@ function GestionCommandes() {
               {STATUTS.map(s => <option key={s} value={s}>{LIBELLES_STATUT[s]}</option>)}
             </select>
           </div>
+          <button
+            onClick={() => supprimerCommande(c.id)}
+            style={{ background: 'none', border: 'none', color: 'var(--flamme)', fontSize: 12, cursor: 'pointer', padding: 0, marginBottom: 10 }}
+          >
+            🗑️ Supprimer la commande
+          </button>
           {c.adresse_livraison && (
             <p style={{ fontSize: 13, color: 'var(--fumee)', marginBottom: 8 }}>{c.adresse_livraison}, {c.code_postal_livraison} {c.ville_livraison}</p>
           )}
