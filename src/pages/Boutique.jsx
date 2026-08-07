@@ -15,7 +15,7 @@ export default function Boutique() {
   const [chargement, setChargement] = useState(true)
 
   useEffect(() => {
-    setCategorieActive('toutes')
+    setCategorieActive(location.state?.categorieId || 'toutes')
     window.scrollTo({ top: 0, behavior: 'auto' })
   }, [location.state?.nonce])
 
