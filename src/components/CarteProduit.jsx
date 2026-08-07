@@ -30,7 +30,7 @@ export default function CarteProduit({ produit, avis }) {
 
   return (
     <div
-      className="carte"
+      className="carte carte-vivante"
       style={{
         overflow: 'hidden', display: 'flex', flexDirection: 'column',
         borderTop: produit.coup_de_coeur ? '3px solid var(--or)' : `3px solid ${couleur}`,
