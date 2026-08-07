@@ -7,7 +7,7 @@ export function genererFacturePDF(commande, nomBoutique) {
   let y = 25
 
   doc.setFontSize(20)
-  doc.text(nomBoutique || 'Lueur & Cire', marge, y)
+  doc.text(nomBoutique || 'Hugoline & Compagnies', marge, y)
   y += 10
   doc.setFontSize(10)
   doc.setTextColor(120)
