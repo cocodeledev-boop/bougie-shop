@@ -3,7 +3,7 @@ import { useParametres } from '../hooks/useParametres'
 
 export default function Footer() {
   const { parametres } = useParametres()
-  const nom = parametres.nom_boutique || 'Lueur & Cire'
+  const nom = parametres.nom_boutique || 'Hugoline & Compagnies'
 
   return (
     <footer style={{ background: 'var(--bois)', borderTop: '1px solid var(--bois-clair)', marginTop: 60 }}>
