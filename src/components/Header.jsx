@@ -56,16 +56,16 @@ export default function Header({ onOuvrirPanier }) {
         <BarreRecherche />
 
         <nav style={{ display: 'flex', alignItems: 'center', gap: 28, flexShrink: 0 }}>
-          <a href="/boutique" onClick={allerALaBoutique} style={{ fontSize: 15, color: 'var(--cire-douce)' }}>Boutique</a>
+          <a href="/boutique" onClick={allerALaBoutique} className="lien-nav" style={{ fontSize: 15, color: 'var(--cire-douce)' }}>Boutique</a>
 
           {profil?.is_admin && (
-            <Link to="/admin" style={{ fontSize: 15, color: 'var(--flamme)' }}>Admin</Link>
+            <Link to="/admin" className="lien-nav" style={{ fontSize: 15, color: 'var(--flamme)' }}>Admin</Link>
           )}
 
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-              <Link to="/favoris" style={{ fontSize: 15, color: 'var(--cire-douce)' }}>Favoris</Link>
-              <Link to="/compte" style={{ fontSize: 15, color: 'var(--cire-douce)' }}>Mon compte</Link>
+              <Link to="/favoris" className="lien-nav" style={{ fontSize: 15, color: 'var(--cire-douce)' }}>Favoris</Link>
+              <Link to="/compte" className="lien-nav" style={{ fontSize: 15, color: 'var(--cire-douce)' }}>Mon compte</Link>
               <button
                 onClick={async () => { await deconnexion(); navigate('/') }}
                 style={{ background: 'none', color: 'var(--fumee)', fontSize: 15, padding: 0 }}
@@ -74,7 +74,7 @@ export default function Header({ onOuvrirPanier }) {
               </button>
             </div>
           ) : (
-            <Link to="/connexion" style={{ fontSize: 15, color: 'var(--cire-douce)' }}>Connexion</Link>
+            <Link to="/connexion" className="lien-nav" style={{ fontSize: 15, color: 'var(--cire-douce)' }}>Connexion</Link>
           )}
 
           <button
@@ -83,8 +83,11 @@ export default function Header({ onOuvrirPanier }) {
             style={{
               background: 'var(--bois)', border: '1px solid var(--bois-clair)',
               borderRadius: 4, padding: '10px 14px', position: 'relative',
-              display: 'flex', alignItems: 'center', gap: 8, color: 'var(--cire)'
+              display: 'flex', alignItems: 'center', gap: 8, color: 'var(--cire)',
+              transition: 'border-color 0.2s ease, transform 0.15s ease',
             }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--flamme)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--bois-clair)'}
           >
             <CartIcon />
             {nombreArticles > 0 && (
