@@ -98,7 +98,32 @@ input, textarea { font-family: var(--font-body); }
 
 .champ input:focus, .champ textarea:focus { border-color: var(--flamme); }
 
-.carte { background: var(--bois); border: 1px solid var(--bois-clair); border-radius: 6px; }
+.carte { background: var(--bois); border: 1px solid var(--bois-clair); border-radius: 6px; box-shadow: 0 2px 14px rgba(0,0,0,0.22); }
+
+/* Lift au survol pour les cartes cliquables (produits, packs, categories) */
+.carte-vivante {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.carte-vivante:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 34px rgba(0,0,0,0.38);
+  border-color: var(--flamme);
+}
+
+/* Vacillement subtil de flamme, pour les accents de texte les plus importants */
+@keyframes vacillement {
+  0%, 100% { text-shadow: 0 0 14px rgba(242,166,90,0.5); }
+  50% { text-shadow: 0 0 26px rgba(242,166,90,0.85); }
+}
+.flamme-vive { animation: vacillement 3.4s ease-in-out infinite; }
+
+/* Soulignement animé pour les liens de navigation */
+.lien-nav { position: relative; padding-bottom: 2px; }
+.lien-nav::after {
+  content: ''; position: absolute; left: 0; right: 100%; bottom: -3px; height: 1.5px;
+  background: var(--flamme); transition: right 0.25s ease;
+}
+.lien-nav:hover::after { right: 0; }
 
 .message-erreur {
   color: var(--erreur);
