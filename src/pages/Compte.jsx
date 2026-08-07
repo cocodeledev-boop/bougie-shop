@@ -227,7 +227,7 @@ export default function Compte() {
                       {c.statut !== 'en_attente' && c.statut !== 'annulee' && (
                         <button
                           className="btn btn-secondary" style={{ width: '100%', padding: '11px', fontSize: 14 }}
-                          onClick={() => genererFacturePDF(c, parametres.nom_boutique)}
+                          onClick={() => genererFacturePDF(c, parametres, { prenom: profil?.prenom, nom: profil?.nom, email: user?.email })}
                         >
                           📄 Télécharger ma facture PDF
                         </button>
