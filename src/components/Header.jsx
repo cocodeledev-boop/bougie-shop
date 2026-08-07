@@ -12,7 +12,7 @@ export default function Header({ onOuvrirPanier }) {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const nomBoutique = parametres.nom_boutique || 'Lueur & Cire'
+  const nomBoutique = parametres.nom_boutique || 'Hugoline & Compagnies'
 
   useEffect(() => {
     if (parametres.nom_boutique) document.title = parametres.nom_boutique
