@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { useParametres } from '../hooks/useParametres'
 
 const CODE = 'NOUVEAUBOUGIE'
 const CLE_SESSION = 'popup_bienvenue_vu'
 
 export default function PopupBienvenue() {
   const { user, loading } = useAuth()
+  const { parametres } = useParametres()
   const [visible, setVisible] = useState(false)
   const [copie, setCopie] = useState(false)
 
@@ -67,7 +69,7 @@ export default function PopupBienvenue() {
       >
         <button onClick={fermer} style={{ position: 'absolute', top: 14, right: 16, background: 'none', color: 'var(--fumee)', fontSize: 22 }}>×</button>
         <div style={{ fontSize: 38, marginBottom: 12 }}>🕯️</div>
-        <h2 style={{ fontSize: 26, marginBottom: 10 }}>Bienvenue chez Lueur & Cire</h2>
+        <h2 style={{ fontSize: 26, marginBottom: 10 }}>Bienvenue chez {parametres.nom_boutique || 'Hugoline & Compagnies'}</h2>
         <p style={{ color: 'var(--cire-douce)', marginBottom: 22, lineHeight: 1.6 }}>
           -10% sur votre première commande avec le code :
         </p>
