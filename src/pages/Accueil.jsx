@@ -81,8 +81,60 @@ export default function Accueil() {
         </div>
       </section>
 
-      {/* Bandeau -10% nouveau client — couleur emeraude/or pour ressortir du reste du site */}
-      <section className="container" style={{ padding: '0 24px 50px' }}>
+      <WaxDivider />
+
+      {/* Categories en grandes cartes, remontees juste apres le hero pour orienter
+          le client tres vite vers ce qu'il cherche (plutot que de le faire defiler) */}
+      {categories.length > 0 && (
+        <section style={{ padding: '54px 0 20px' }}>
+          <div className="container">
+            <h2 style={{ fontSize: 26, marginBottom: 26 }}>Nos catégories</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(categories.length, 4)}, 1fr)`, gap: 16 }}>
+              {categories.map(c => (
+                <Link
+                  key={c.id}
+                  to="/boutique"
+                  state={{ nonce: Date.now(), categorieId: c.id }}
+                  className="carte-vivante"
+                  style={{
+                    position: 'relative', aspectRatio: '3/4', borderRadius: 8, overflow: 'hidden',
+                    background: c.image_url
+                      ? `linear-gradient(0deg, rgba(28,20,15,0.85), rgba(28,20,15,0.15)), url(${c.image_url}) center/cover`
+                      : 'linear-gradient(160deg, var(--bois-clair), var(--nuit) 85%)',
+                    border: '1px solid var(--bois-clair)', display: 'flex', alignItems: 'flex-end', padding: 18,
+                  }}
+                >
+                  <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--cire)' }}>{c.nom}</span>
+                  <span style={{
+                    position: 'absolute', top: 14, right: 14, width: 30, height: 30, borderRadius: '50%',
+                    background: 'var(--emeraude)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'var(--cire)', fontSize: 15,
+                  }}>→</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Coups de coeur — mise en avant forte, couleur or pour guider le choix du client */}
+      {coupsDeCoeur.length > 0 && (
+        <section style={{ padding: '50px 0 10px' }}>
+          <div className="container">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 26 }}>
+              <span style={{ color: 'var(--or)', fontSize: 22 }}>★</span>
+              <h2 style={{ fontSize: 26 }}>Nos coups de cœur</h2>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 20 }}>
+              {coupsDeCoeur.map(p => <CarteProduit key={p.id} produit={p} avis={avisParProduit[p.id]} />)}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Bandeau -10% nouveau client — arrive maintenant que le client a deja vu des produits,
+          l'offre se sent "meritee" plutot que d'etre une pub immediate en arrivant sur le site */}
+      <section className="container" style={{ padding: '30px 24px 10px' }}>
         <Link
           to="/boutique"
           style={{
@@ -106,55 +158,6 @@ export default function Accueil() {
           </span>
         </Link>
       </section>
-
-      <WaxDivider />
-
-      {/* Coups de coeur — mise en avant forte, couleur or pour guider le choix du client */}
-      {coupsDeCoeur.length > 0 && (
-        <section style={{ padding: '50px 0 10px' }}>
-          <div className="container">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 26 }}>
-              <span style={{ color: 'var(--or)', fontSize: 22 }}>★</span>
-              <h2 style={{ fontSize: 26 }}>Nos coups de cœur</h2>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 20 }}>
-              {coupsDeCoeur.map(p => <CarteProduit key={p.id} produit={p} avis={avisParProduit[p.id]} />)}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Categories en grandes cartes, avec photo si dispo */}
-      {categories.length > 0 && (
-        <section style={{ padding: '60px 0 20px' }}>
-          <div className="container">
-            <h2 style={{ fontSize: 26, marginBottom: 26 }}>Nos catégories</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(categories.length, 4)}, 1fr)`, gap: 16 }}>
-              {categories.map(c => (
-                <Link
-                  key={c.id}
-                  to="/boutique"
-                  className="carte-vivante"
-                  style={{
-                    position: 'relative', aspectRatio: '3/4', borderRadius: 8, overflow: 'hidden',
-                    background: c.image_url
-                      ? `linear-gradient(0deg, rgba(28,20,15,0.85), rgba(28,20,15,0.15)), url(${c.image_url}) center/cover`
-                      : 'linear-gradient(160deg, var(--bois-clair), var(--nuit) 85%)',
-                    border: '1px solid var(--bois-clair)', display: 'flex', alignItems: 'flex-end', padding: 18,
-                  }}
-                >
-                  <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--cire)' }}>{c.nom}</span>
-                  <span style={{
-                    position: 'absolute', top: 14, right: 14, width: 30, height: 30, borderRadius: '50%',
-                    background: 'var(--emeraude)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'var(--cire)', fontSize: 15,
-                  }}>→</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Carrousel produits */}
       <section style={{ padding: '50px 0' }}>
@@ -195,6 +198,7 @@ export default function Accueil() {
       )}
 
       {/* Avis */}
+      <WaxDivider flip />
       <section style={{ background: 'var(--bois)', padding: '60px 0', borderTop: '1px solid var(--bois-clair)' }}>
         <div className="container">
           <Avis produitId={null} />
