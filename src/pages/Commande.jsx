@@ -13,7 +13,7 @@ const MODES_LIVRAISON = [
 
 export default function Commande() {
   const { user, loading, profil } = useAuth()
-  const { articles, sousTotal, total, reductionCode, codePromo, vider } = useCart()
+  const { articles, sousTotal, total, reductionCode, codePromo, pointsUtilises, definirPointsUtilises, retirerPoints, reductionPoints, vider } = useCart()
   const { parametres } = useParametres()
   const navigate = useNavigate()
 
@@ -22,7 +22,6 @@ export default function Commande() {
   const [ville, setVille] = useState('')
   const [codePostal, setCodePostal] = useState('')
   const [pointRelais, setPointRelais] = useState('')
-  const [utiliserPoints, setUtiliserPoints] = useState(false)
   const [erreur, setErreur] = useState('')
   const [envoi, setEnvoi] = useState(false)
 
@@ -31,16 +30,8 @@ export default function Commande() {
   if (articles.length === 0) return <Navigate to="/boutique" />
 
   const pointsDispo = profil?.points_fidelite || 0
-  const seuilPoints = parseInt(parametres.points_par_euro_reduction || 100)
-  const valeurPalier = parseFloat(parametres.valeur_euro_par_palier || 5)
-
-  // Combien de paliers complets le client peut utiliser sur cette commande
-  const paliersMax = Math.min(
-    Math.floor(pointsDispo / seuilPoints),
-    Math.floor(total / valeurPalier) // on ne peut pas avoir plus de réduction que le total
-  )
-  const reductionPoints = utiliserPoints ? paliersMax * valeurPalier : 0
-  const pointsUtilises = utiliserPoints ? paliersMax * seuilPoints : 0
+  const paliersDisponibles = Math.floor(pointsDispo / 100)
+  const pointsUtilisesFinal = Math.min(pointsUtilises, pointsDispo)
 
   const seuilGratuit = parseFloat(parametres.seuil_livraison_gratuite || 50)
   const fraisNationale = parseFloat(parametres.frais_livraison || 4.9)
@@ -50,7 +41,7 @@ export default function Commande() {
     : mode === 'point_relais' ? (total >= seuilGratuit ? 0 : fraisPointRelais)
     : (total >= seuilGratuit ? 0 : fraisNationale)
 
-  const totalFinal = Math.max(0, total - reductionPoints + fraisLivraison)
+  const totalFinal = Math.max(0, total + fraisLivraison)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -70,7 +61,7 @@ export default function Commande() {
           frais_livraison: fraisLivraison,
           reduction_montant: reductionCode + reductionPoints,
           reduction_points: reductionPoints,
-          points_utilises: pointsUtilises,
+          points_utilises: pointsUtilisesFinal,
           mode_livraison: mode,
           point_relais: mode === 'point_relais' ? pointRelais : null,
           adresse_livraison: mode === 'nationale' ? adresse : null,
@@ -78,7 +69,6 @@ export default function Commande() {
           code_postal_livraison: mode === 'nationale' ? codePostal : null,
           code_promo: codePromo?.code || null,
           code_promo_id: codePromo?.id || null,
-          reduction_montant: reductionCode,
         })
         .select()
         .single()
@@ -95,18 +85,21 @@ export default function Commande() {
       await supabase.from('commande_articles').insert(lignes)
 
       // Deduire immediatement les points utilises du solde du client
-      if (pointsUtilises > 0) {
+      if (pointsUtilisesFinal > 0) {
         await supabase.from('profils').update({
-          points_fidelite: Math.max(0, pointsDispo - pointsUtilises)
+          points_fidelite: Math.max(0, pointsDispo - pointsUtilisesFinal)
         }).eq('id', user.id)
         await supabase.from('points_fidelite_historique').insert({
           user_id: user.id,
-          points: -pointsUtilises,
+          points: -pointsUtilisesFinal,
           raison: `Réduction de ${reductionPoints.toFixed(2)} € utilisée`,
           commande_id: commande.id,
         })
       }
 
+      // On envoie une seule reduction combinee (code promo + points) a Stripe :
+      // Stripe n'accepte pas les prix negatifs dans les line_items, donc tout
+      // passe desormais par un coupon "amount_off" cote serveur.
       const reponse = await fetch('/.netlify/functions/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -118,9 +111,8 @@ export default function Commande() {
               prix: (a.reduction_par_deux && a.quantite >= 2) ? a.prix * 0.9 : a.prix,
             })),
             ...(fraisLivraison > 0 ? [{ nom: 'Frais de livraison', quantite: 1, prix: fraisLivraison }] : []),
-            ...(reductionPoints > 0 ? [{ nom: `Points fidélité (${pointsUtilises} pts)`, quantite: 1, prix: -reductionPoints }] : []),
           ],
-          reductionPourcentage: codePromo?.pourcentage || 0,
+          reductionMontant: reductionCode + reductionPoints,
         }),
       })
 
@@ -220,6 +212,48 @@ export default function Commande() {
             </div>
           )}
 
+          {/* Points fidélité — quantité ajustable */}
+          {paliersDisponibles > 0 && (
+            <div style={{
+              background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.25)',
+              borderRadius: 10, padding: '14px 16px', marginBottom: 20,
+            }}>
+              <p style={{ fontSize: 13, color: 'var(--or)', fontWeight: 600, marginBottom: 2 }}>⭐ {pointsDispo} points disponibles</p>
+              <p style={{ fontSize: 11, color: 'var(--fumee)', marginBottom: 10 }}>100 points = 5 € de réduction</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => definirPointsUtilises(pointsUtilisesFinal - 100, pointsDispo)}
+                  disabled={pointsUtilisesFinal <= 0}
+                  style={{
+                    width: 30, height: 30, borderRadius: 4, background: 'var(--bois)',
+                    border: '1px solid var(--bois-clair)', color: 'var(--cire)', fontSize: 16,
+                    opacity: pointsUtilisesFinal <= 0 ? 0.4 : 1,
+                  }}
+                >−</button>
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--or)' }}>{pointsUtilisesFinal} pts</p>
+                  <p style={{ fontSize: 11, color: 'var(--fumee)' }}>−{reductionPoints.toFixed(2)} €</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => definirPointsUtilises(pointsUtilisesFinal + 100, pointsDispo)}
+                  disabled={pointsUtilisesFinal + 100 > pointsDispo}
+                  style={{
+                    width: 30, height: 30, borderRadius: 4, background: 'var(--bois)',
+                    border: '1px solid var(--bois-clair)', color: 'var(--cire)', fontSize: 16,
+                    opacity: pointsUtilisesFinal + 100 > pointsDispo ? 0.4 : 1,
+                  }}
+                >+</button>
+                {pointsUtilisesFinal > 0 && (
+                  <button type="button" onClick={retirerPoints} style={{ background: 'none', color: 'var(--fumee)', fontSize: 12 }}>
+                    Annuler
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Récapitulatif */}
           <div style={{ background: 'var(--bois)', borderRadius: 10, padding: 18, marginBottom: 24 }}>
             <p style={{ fontSize: 13, color: 'var(--fumee)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Récapitulatif</p>
@@ -233,6 +267,12 @@ export default function Commande() {
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--flamme)', marginBottom: 8 }}>
                 <span>Code "{codePromo.code}"</span>
                 <span>−{reductionCode.toFixed(2)} €</span>
+              </div>
+            )}
+            {reductionPoints > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--or)', marginBottom: 8 }}>
+                <span>⭐ Points fidélité ({pointsUtilisesFinal} pts)</span>
+                <span>−{reductionPoints.toFixed(2)} €</span>
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 8, color: fraisLivraison === 0 ? 'var(--emeraude-clair)' : 'var(--cire-douce)' }}>
