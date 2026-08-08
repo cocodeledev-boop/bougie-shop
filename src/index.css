@@ -125,6 +125,21 @@ input, textarea { font-family: var(--font-body); }
 }
 .lien-nav:hover::after { right: 0; }
 
+/* Curseur "Prix max" de la boutique — piste en degrade jusqu'a la valeur choisie */
+.curseur-prix {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 5px; border-radius: 3px;
+  background: linear-gradient(to right, var(--flamme) var(--pourcentage, 100%), var(--bois-clair) var(--pourcentage, 100%));
+  outline: none; cursor: pointer;
+}
+.curseur-prix::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--flamme); border: 2px solid var(--nuit); box-shadow: 0 0 0 1px var(--flamme); cursor: pointer;
+}
+.curseur-prix::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%; background: var(--flamme);
+  border: 2px solid var(--nuit); box-shadow: 0 0 0 1px var(--flamme); cursor: pointer;
+}
+
 .message-erreur {
   color: var(--erreur);
   font-size: 14px;
