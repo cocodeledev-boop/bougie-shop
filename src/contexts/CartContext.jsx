@@ -84,10 +84,17 @@ export function CartProvider({ children }) {
 
   const [pointsUtilises, setPointsUtilises] = useState(0)
 
-  function utiliserPoints(pointsDisponibles) {
-    // 100 points = 5€ — on calcule combien de paliers le client peut utiliser
-    const paliersMax = Math.floor(pointsDisponibles / 100)
-    setPointsUtilises(paliersMax * 100)
+  // Permet de choisir precisement combien de points utiliser (par paliers de 100 = 5€).
+  // Le montant est toujours borne par les points disponibles du client ET par le total
+  // restant a payer (impossible d'avoir plus de reduction que le prix de la commande).
+  function definirPointsUtilises(valeurSouhaitee, pointsDisponibles) {
+    const bornePoints = Math.max(0, Math.min(valeurSouhaitee, pointsDisponibles))
+    const arrondiPalier = Math.floor(bornePoints / 100) * 100
+
+    const totalApresCode = codePromo ? sousTotal - sousTotal * (codePromo.pourcentage / 100) : sousTotal
+    const pointsMaxParTotal = Math.floor(totalApresCode / 5) * 100
+
+    setPointsUtilises(Math.max(0, Math.min(arrondiPalier, pointsMaxParTotal)))
   }
 
   function retirerPoints() {
@@ -112,7 +119,7 @@ export function CartProvider({ children }) {
       articles, ajouter, modifierQuantite, retirer, vider,
       sousTotal, total, nombreArticles,
       codePromo, definirCodePromo, retirerCodePromo, reductionCode,
-      pointsUtilises, utiliserPoints, retirerPoints, reductionPoints,
+      pointsUtilises, definirPointsUtilises, retirerPoints, reductionPoints,
     }}>
       {children}
     </CartContext.Provider>
