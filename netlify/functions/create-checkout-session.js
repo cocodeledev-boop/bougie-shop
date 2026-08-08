@@ -7,7 +7,7 @@ export default async (req) => {
 
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
-    const { commandeId, articles, reductionPourcentage } = await req.json()
+    const { commandeId, articles, reductionMontant } = await req.json()
 
     if (!commandeId || !articles || articles.length === 0) {
       return new Response(JSON.stringify({ erreur: 'Commande invalide.' }), { status: 400 })
@@ -15,10 +15,14 @@ export default async (req) => {
 
     const siteUrl = process.env.SITE_URL || `https://${req.headers.get('host')}`
 
+    // Toute reduction (code promo + points fidelite) passe par UN SEUL coupon
+    // en montant fixe. Stripe refuse les prix negatifs dans les line_items,
+    // donc c'est la seule facon fiable de combiner les deux types de reduction.
     let discounts
-    if (reductionPourcentage && reductionPourcentage > 0) {
+    if (reductionMontant && reductionMontant > 0) {
       const coupon = await stripe.coupons.create({
-        percent_off: reductionPourcentage,
+        amount_off: Math.round(reductionMontant * 100),
+        currency: 'eur',
         duration: 'once',
       })
       discounts = [{ coupon: coupon.id }]
