@@ -9,7 +9,7 @@ export default function PanierTiroir({ ouvert, onFermer }) {
   const {
     articles, modifierQuantite, retirer, sousTotal, total,
     codePromo, definirCodePromo, retirerCodePromo, reductionCode, ajouter,
-    pointsUtilises, utiliserPoints, retirerPoints, reductionPoints,
+    pointsUtilises, definirPointsUtilises, retirerPoints, reductionPoints,
   } = useCart()
   const { user, profil } = useAuth()
   const navigate = useNavigate()
@@ -145,36 +145,35 @@ export default function PanierTiroir({ ouvert, onFermer }) {
             )}
             {messageCode && <p style={{ fontSize: 13, color: 'var(--erreur)', marginBottom: 10 }}>{messageCode}</p>}
 
-            {/* Bloc points fidélité */}
+            {/* Bloc points fidélité — quantité ajustable par paliers de 100 pts (5€) */}
             {user && paliersDisponibles > 0 && (
               <div style={{
                 background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.25)',
                 borderRadius: 8, padding: '12px 14px', marginBottom: 14,
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <p style={{ fontSize: 13, color: 'var(--or)', fontWeight: 600 }}>⭐ {pointsDisponibles} points disponibles</p>
-                    <p style={{ fontSize: 11, color: 'var(--fumee)' }}>100 points = 5 € de réduction</p>
+                <p style={{ fontSize: 13, color: 'var(--or)', fontWeight: 600, marginBottom: 2 }}>⭐ {pointsDisponibles} points disponibles</p>
+                <p style={{ fontSize: 11, color: 'var(--fumee)', marginBottom: 10 }}>100 points = 5 € de réduction</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <button
+                    onClick={() => definirPointsUtilises(pointsUtilises - 100, pointsDisponibles)}
+                    disabled={pointsUtilises <= 0}
+                    style={{ ...qtyBtn, opacity: pointsUtilises <= 0 ? 0.4 : 1 }}
+                  >−</button>
+                  <div style={{ flex: 1, textAlign: 'center' }}>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--or)' }}>{pointsUtilises} pts</p>
+                    <p style={{ fontSize: 11, color: 'var(--fumee)' }}>−{reductionPoints.toFixed(2)} €</p>
                   </div>
-                  {pointsUtilises > 0 ? (
+                  <button
+                    onClick={() => definirPointsUtilises(pointsUtilises + 100, pointsDisponibles)}
+                    disabled={pointsUtilises + 100 > pointsDisponibles}
+                    style={{ ...qtyBtn, opacity: pointsUtilises + 100 > pointsDisponibles ? 0.4 : 1 }}
+                  >+</button>
+                  {pointsUtilises > 0 && (
                     <button onClick={retirerPoints} style={{ background: 'none', color: 'var(--fumee)', fontSize: 12 }}>
                       Annuler
                     </button>
-                  ) : (
-                    <button
-                      onClick={() => utiliserPoints(pointsDisponibles)}
-                      className="btn btn-secondary"
-                      style={{ padding: '6px 12px', fontSize: 12 }}
-                    >
-                      Utiliser (−{paliersDisponibles * 5} €)
-                    </button>
                   )}
                 </div>
-                {pointsUtilises > 0 && (
-                  <p style={{ fontSize: 12, color: 'var(--or)', marginTop: 8 }}>
-                    ✅ {pointsUtilises} points utilisés → −{reductionPoints.toFixed(2)} € appliqués
-                  </p>
-                )}
               </div>
             )}
 
